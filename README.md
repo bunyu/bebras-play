@@ -1,6 +1,6 @@
-# Algoréa: play and share problems
+# Algorea Block: play and share problems
 
-The web version of the Algoréa app: open a shared problem link (`partage.html#p=…`), play it, keep it,
+The web version of the Algorea Block app: open a shared problem link (`partage.html#p=…`), play it, keep it,
 or make your own problems with the editor (`editeur.html`). Everything stays in your browser.
 
 Site: https://bunyu.github.io/bebras-play/
