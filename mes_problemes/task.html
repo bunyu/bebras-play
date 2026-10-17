@@ -1,0 +1,151 @@
+<!doctype html>
+<html>
+   <head>
+    <meta charset="utf-8">
+    <title>Mes problèmes</title>
+      <!-- One page for every problem made with editeur.html:  task.html?id=<problem id>
+           (task.html?draft=1 plays the problem being edited, task.html?shared=1 the problem opened
+           by partage.html). The problem is data, see store.js. -->
+      <script>
+      window.stringsLanguage = 'fr';
+      </script>
+      <script src="../lang.js"></script>
+      <script>
+      AlgoreaLang.loadTaskTexts();
+      document.title = AlgoreaLang.pick({ fr: 'Mes problèmes', en: 'My problems', vi: 'Bài của tôi' });
+      </script>
+      <script class="remove" type="text/javascript" src="../bebras-modules/pemFioi/importModules-1.4-mobileFirst.js" id="import-modules"></script><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+      <script class="remove" type="text/javascript">
+        var modulesPath = '../bebras-modules/'
+        importModules([
+            'jquery-1.7.1', 'JSON-js', 'raphael-2.2.1', 'beaver-task-2.0', 'jschannel', 'raphaelFactory-1.0', 'delayFactory-1.0', 'simulationFactory-1.0',
+            'platform-pr', 'buttonsAndMessages', 'beav-1.0', 'installationAPI.01', 'miniPlatform',
+            'conceptDisplay-1.0', 'conceptViewer-1.0', 'conceptViewer_css-1.0',
+            'taskStyles-mobileFirst', 'blockly-robot-1.0']);
+        importLanguageModules('blockly');
+      </script>
+      <script class="remove" type="text/javascript">
+       var json = {
+          "id": "http://castor-informatique.fr/questions/algorea/mes-problemes/",
+          "language": "fr",
+          "version": "fr.01",
+          "authors": "",
+          "translators": [],
+          "license": "",
+          "taskPathPrefix": "",
+          "modulesPathPrefix": "",
+          "browserSupport": [],
+          "fullFeedback": true,
+          "minWidth": "auto"
+      };
+      </script>
+      <script type="text/javascript" src="data.js"></script>
+      <script type="text/javascript" src="store.js"></script>
+      <script type="text/javascript" src="tutorials.js"></script>
+      <script type="text/javascript">
+      (function () {
+         var query = {};
+         location.search.substring(1).split('&').forEach(function (part) {
+            var kv = part.split('=');
+            query[kv[0]] = decodeURIComponent(kv[1] || '');
+         });
+         var problem;
+         if (query.draft || query.shared) {
+            var key = query.draft ? 'algoreaDraft' : 'algoreaShared';
+            try { problem = JSON.parse(localStorage.getItem(key)); } catch (e) { /* no draft */ }
+         } else if (query.tutorial) {
+            // "Learn to play": the guide starts by itself (tutorial.js)
+            problem = (window.ALGOREA_TUTORIALS || []).filter(function (t) { return t.world === query.tutorial; })[0];
+            window.algoreaTutorialAuto = true;
+         } else {
+            problem = AlgoreaCustom.get(query.id);
+         }
+         // the starter problems in the child's language (not the draft: the editor shows the original)
+         if (!query.draft) { problem = AlgoreaCustom.shown(problem); }
+         window.customProblem = problem;
+         if (!problem) { return; }
+
+         var world = AlgoreaCustom.WORLDS[problem.world];
+         var common = AlgoreaCustom.COMMON.map(function (b) { return b[0]; });
+         var levels = [], max = {}, robotBlocks = {}, standardBlocks = {}, menus = {}, wholeMenus = {}, data = {};
+         problem.versions.forEach(function (v) {
+            var level = AlgoreaCustom.levelOf(v);
+            levels.push(level);
+            max[level] = v.max;
+            robotBlocks[level] = v.blocks.filter(function (b) { return common.indexOf(b) < 0; });
+            standardBlocks[level] = v.blocks.filter(function (b) { return common.indexOf(b) >= 0 && b.indexOf('cat:') < 0; });
+            // "cat:variables" is the engine's whole Variables menu
+            wholeMenus[level] = v.blocks.filter(function (b) { return b.indexOf('cat:') === 0; })
+               .map(function (b) { return b.substring(4); });
+            menus[level] = AlgoreaCustom.needsMenus(v.blocks);
+            data[level] = v.tests.map(function (t) { return AlgoreaCustom.toEngine(problem.world, t); });
+         });
+
+         window.initTask = function (subTask) {
+            subTask.gridInfos = {
+               conceptViewer: true,
+               contextType: problem.world,
+               showCardinals: true,
+               languageStrings: world.strings ? { blocklyRobot_lib: world.strings } : undefined,
+               maxInstructions: max,
+               includeBlocks: {
+                  groupByCategory: menus,
+                  generatedBlocks: { robot: robotBlocks },
+                  standardBlocks: { includeAll: false, wholeCategories: wholeMenus, singleBlocks: standardBlocks }
+               }
+            };
+            // what is special to a world (for instance how much the robot can carry)
+            Object.keys(world.settings || {}).forEach(function (key) { subTask.gridInfos[key] = world.settings[key]; });
+            subTask.data = data;
+            initBlocklySubTask(subTask);
+            displayHelper.thresholdEasy = 5000;
+            displayHelper.thresholdMedium = 10000;
+         };
+         initWrapper(window.initTask, levels, null, true);
+      })();
+      </script>
+      <script type="text/javascript" src="../bridge.js"></script>
+   </head>
+   <body onresize="task.displayedSubTask.updateScale()">
+      <div id="task">
+         <h1 id="customTitle"></h1>
+         <span id="customImages"></span>
+         <div id="tabsContainer"></div>
+         <div id="taskContent">
+            <div id="taskIntro"></div>
+            <div id="gridContainer"></div>
+            <div id="blocklyLibContent"></div>
+         </div>
+      </div><!-- task -->
+      <script type="text/javascript">
+      (function () {
+         var problem = window.customProblem, intro = document.getElementById('taskIntro');
+         if (!problem) {
+            intro.textContent = AlgoreaLang.pick({
+               fr: 'Ce problème est introuvable. Ouvrez-le depuis algorea.html ou editeur.html.',
+               en: 'This problem cannot be found. Open it from algorea.html or editeur.html.',
+               vi: 'Không tìm thấy bài này. Hãy mở bài từ algorea.html hoặc editeur.html.'
+            });
+            return;
+         }
+         var world = AlgoreaCustom.WORLDS[problem.world];
+         document.getElementById('customTitle').textContent = problem.title;
+         // the robot library finds the pictures of the world beside icon.png
+         var img = document.createElement('img');
+         img.src = world.images + '/icon.png';
+         img.style.display = 'none';
+         document.getElementById('customImages').appendChild(img);
+         // one statement per version; the engine shows the one of the current version
+         problem.versions.forEach(function (v) {
+            (v.text || '').split('\n').forEach(function (line) {
+               if (!line.trim()) { return; }
+               var p = document.createElement('p');
+               p.className = AlgoreaCustom.levelOf(v);
+               p.textContent = line;
+               intro.appendChild(p);
+            });
+         });
+      })();
+      </script>
+   </body>
+</html>

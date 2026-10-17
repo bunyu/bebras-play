@@ -1,0 +1,152 @@
+/* Colours of the trainer, the editor and the sharing page: bright and soft, like a children's
+   drawing book (cream paper, sky blue, round buttons with a little relief). Loaded after each
+   page's own styles, so these values win. The task pages have task-dark.css (same colours). */
+:root {
+   --bg: #f7f1e1; --card: #ffffff; --ink: #3a3f4b; --soft: #8a8475; --line: #e6dcc3;
+   --accent: #3f86d6; --star: #f7a81b; --star-off: #e2d8bf; --on: #3f86d6; --on-ink: #ffffff;
+   --warn: #c0392b; --ok: #2f9e44;
+   --blanche: #b9c3cf; --jaune: #f7c600; --orange: #f68b1f; --vert: #3fb04f; --autre: #a66fd6;
+   /* the colours of the button families, as in a block toolbox */
+   --sky: #4a90d6; --sky-dark: #2f6fb3; --cyan: #3cc0ef; --yellow: #f9d342; --purple: #b26fd8;
+   --green: #4cbf5c; --orange-b: #f7a440; --red: #e8473c;
+   color-scheme: light;
+}
+body { background: var(--bg); color: var(--ink); font-family: "Nunito", "Varela Round", "Segoe UI", Roboto, Arial, sans-serif; }
+h1, h2, h3, .card strong { color: #2d3e5c; }
+
+/* round buttons with a small relief under them */
+button, a.button {
+   background: var(--card); color: var(--ink); border: 2px solid var(--line); border-radius: 16px;
+   box-shadow: 0 3px 0 var(--line); font-weight: 600;
+   transition: transform .08s, box-shadow .08s;
+}
+button:hover, a.button:hover { border-color: var(--accent); }
+button:active, a.button:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--line); }
+button.main { background: var(--accent); border-color: var(--sky-dark); color: #fff; box-shadow: 0 3px 0 var(--sky-dark); }
+button.on { background: var(--accent); border-color: var(--sky-dark); color: #fff; box-shadow: 0 3px 0 var(--sky-dark); }
+input[type=number], input[type=text], select, textarea {
+   background: #fff !important; color: var(--ink) !important; border: 2px solid var(--line) !important; border-radius: 12px !important;
+}
+
+/* ---------- trainer (algorea.html) ---------- */
+.top h1 { color: var(--sky-dark); font-size: 26px; font-weight: 800; letter-spacing: .5px; display: flex; align-items: center; gap: 8px; cursor: pointer; }
+#lang { background: #e7f2fc; border-color: #b9d8f3; box-shadow: 0 3px 0 #b9d8f3; }
+#received { background: #e6f7e8; border-color: #b5e2bb; box-shadow: 0 3px 0 #b5e2bb; }
+#editor { background: #fff1de; border-color: #f7cf9c; box-shadow: 0 3px 0 #f7cf9c; }
+#who { background: #f4e8fb; border-color: #dcc0ef; box-shadow: 0 3px 0 #dcc0ef; }
+.chip.on { background: var(--accent); color: #fff; }
+.meter { background: var(--card); border: 2px solid var(--line); border-radius: 16px; }
+.bar { background: #efe7d3; height: 12px; border-radius: 6px; }
+.card { background: var(--card); border: 2px solid var(--line); border-radius: 18px; box-shadow: 0 4px 0 var(--line); }
+.card::before { width: 10px; }
+.card.done { background: #e9f8ea; border-color: #bfe6c4; box-shadow: 0 4px 0 #bfe6c4; }
+.mock button { border-left-width: 10px; }
+
+/* the bar above a problem: the blue strip of a block toolbox, with coloured buttons */
+#playbar { background: var(--sky); border-bottom: 3px solid var(--sky-dark); }
+#playbar button { border: 0; color: #fff; box-shadow: 0 3px 0 rgba(0, 0, 0, .22); }
+#playbar #back { background: var(--yellow); color: #5a4300; }
+#playbar #prev, #playbar #next { background: var(--cyan); }
+#playbar #listen { background: var(--green); }
+#playbar #guide { background: var(--orange-b); }
+#playbar #hint { background: #ffd23f; color: #5a4300; }
+#playbar #hint.glow { animation: hint-glow 1s ease-in-out infinite; }
+@keyframes hint-glow { 0%, 100% { box-shadow: 0 0 0 0 rgba(255, 210, 63, .9); } 50% { box-shadow: 0 0 0 8px rgba(255, 210, 63, 0); transform: scale(1.12); } }
+#playbar #errors { background: #fff; color: var(--ink); }
+#playbar #solution { background: var(--purple); }
+#playbar #finish { background: var(--red); }
+#playbar #mocktabs button { background: #fff; color: var(--ink); }
+#playbar #mocktabs button.on { background: var(--yellow); color: #5a4300; }
+#playbar #listen.on { background: var(--star); }
+#ptitle { color: #fff; }
+#ptitle small { color: #d9ebfb; }
+#pstars { color: rgba(255, 255, 255, .45); }
+#pstars b { color: #ffd23f; }
+#clock { background: #fff; color: var(--ink); }
+#clock.late { background: var(--red); color: #fff; }
+
+/* today's mission */
+.mission { background: #fff; border: 3px solid #f7c58a; border-radius: 22px; box-shadow: 0 4px 0 #f0dcc0; padding: 12px 16px; margin: 18px 0 6px; }
+.mission .mhead { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px; }
+.mission h2 { margin: 0; color: #e07a1f; }
+.mission .streak { font-weight: 800; color: #e8473c; }
+.mission .streak small { color: var(--soft); font-weight: 600; }
+.mission .week { display: flex; gap: 6px; margin: 10px 0 4px; }
+.mission .day { flex: 1; text-align: center; font-size: 12px; color: var(--soft); background: #f7f1e1; border-radius: 12px; padding: 4px 0; }
+.mission .day b { display: block; font-size: 18px; line-height: 1.3; color: #d8ccb0; }
+.mission .day.fire { background: #ffe7d6; color: #e8473c; }
+.mission .day.today { outline: 3px solid #3cc0ef; }
+.mission ul { list-style: none; margin: 8px 0 0; padding: 0; }
+.mission li { display: flex; align-items: center; gap: 10px; padding: 7px 0; border-top: 2px dashed #f0e6cf; font-weight: 600; }
+.mission li .gtext { flex: 1; }
+.mission li .tick { font-size: 20px; color: #c9bc9b; width: 24px; text-align: center; }
+.mission li.done .tick { color: var(--ok); }
+.mission li.done .gtext { color: var(--soft); text-decoration: line-through; }
+.mission li button { min-height: 40px; padding: 4px 14px; }
+.mission .mdone { margin: 8px 0 0; color: var(--ok); font-weight: 800; }
+
+/* trophies: the shelf and the card of a new reward */
+#trophies { background: #fff6d6; border-color: #f3d77a; box-shadow: 0 3px 0 #f3d77a; }
+.shelfhead { display: flex; align-items: center; gap: 14px; }
+.shelfhead h3 { margin: 0 !important; }
+.shelfhead p { margin: 4px 0 0; color: var(--star); font-weight: 800; }
+.shelf h4 { margin: 16px 0 2px; color: #e07a1f; font-size: 17px; }
+.shelf .note { margin: 0 0 8px; font-size: 13px; color: var(--soft); }
+.items { display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 8px; }
+.items .item { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 8px 4px; background: #fffaf0;
+   border: 2px solid var(--line); border-radius: 16px; box-shadow: 0 3px 0 var(--line); text-align: center; font-size: 12px; }
+.items .item .pic { font-size: 34px; line-height: 1.2; min-height: 54px; display: flex; align-items: center; }
+.items .item b { font-weight: 700; }
+.items .item small { color: var(--soft); }
+.items .item.locked { opacity: .55; filter: grayscale(1); }
+.items .item.worn { background: #e6f4ff; border-color: var(--accent); box-shadow: 0 3px 0 var(--sky-dark); }
+.badges .item .pic { font-size: 24px; gap: 2px; }
+.badges .item .pic i { font-style: normal; }
+.badges .item .pic i.off { filter: grayscale(1); opacity: .3; }
+.unlock { text-align: center; }
+.unlock .new { margin: 0; font-size: 24px; font-weight: 900; color: var(--red); animation: pop .6s ease-out; }
+.unlock .bigpic { display: block; font-size: 96px; line-height: 1.1; animation: pop .6s ease-out; }
+.unlock svg { animation: pop .6s ease-out; }
+.unlock h3 { margin-top: 8px !important; }
+.unlock + .row { justify-content: center; }
+@keyframes pop { 0% { transform: scale(.2) rotate(-20deg); opacity: 0; } 70% { transform: scale(1.15); } 100% { transform: none; opacity: 1; } }
+
+/* the adventure map */
+.island { background: linear-gradient(#e3f4fd, #fdf6e3 40%); border: 3px solid var(--c); border-radius: 28px; margin: 18px 0; padding: 10px 12px 4px; }
+.island h2 { margin: 4px 6px; display: flex; justify-content: space-between; align-items: baseline; }
+.island h2 small { color: var(--star); font-weight: 800; }
+.island .path { position: relative; }
+.island .road { position: absolute; left: 0; top: 0; width: 100%; height: 100%; }
+.island .road polyline { fill: none; stroke: #d8c9a3; stroke-width: 10; stroke-dasharray: 2 14; stroke-linecap: round; }
+.island .node { position: absolute; transform: translate(-50%, -50%); width: 66px; height: 66px; border-radius: 50%; padding: 0;
+   background: #fff; border: 4px solid var(--c); box-shadow: 0 5px 0 rgba(0, 0, 0, .15); display: flex; flex-direction: column;
+   align-items: center; justify-content: center; }
+.island .node .num { font-size: 24px; font-weight: 900; color: #2d3e5c; line-height: 1; }
+.island .node .nstars { font-size: 11px; letter-spacing: -1px; }
+.island .node .ntitle { position: absolute; top: 72px; width: 120px; left: 50%; transform: translateX(-50%); font-size: 12px; font-weight: 700;
+   color: var(--soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.island .node.started { background: #fff6d6; }
+.island .node.done { background: var(--c); }
+.island .node.done .num { color: #fff; }
+.island .here { position: absolute; display: flex; flex-direction: column; align-items: center; animation: bob 1.4s ease-in-out infinite; pointer-events: none; }
+.island .here small { font-size: 10px; font-weight: 800; color: #e07a1f; background: #fff; border-radius: 8px; padding: 0 4px; }
+@keyframes bob { 50% { transform: translateY(-6px); } }
+.parentlink { text-align: center; margin: 30px 0 10px; }
+.parentlink button { font-size: 14px; color: var(--soft); }
+
+/* the parent page */
+.parents h4 { margin: 16px 0 6px; color: #2d3e5c; }
+.parents .note { margin: 0 0 6px; font-size: 13px; color: var(--soft); }
+.pstats { display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 8px; }
+.pstats div { background: #fffaf0; border: 2px solid var(--line); border-radius: 14px; padding: 6px; text-align: center; font-size: 12px; color: var(--soft); }
+.pstats b { display: block; font-size: 22px; color: #2d3e5c; }
+.pweek { display: flex; gap: 6px; align-items: flex-end; }
+.pday { flex: 1; text-align: center; font-size: 11px; color: var(--soft); }
+.pday b { display: block; color: #2d3e5c; font-size: 13px; }
+.pday .pbar { height: 70px; background: #f7f1e1; border-radius: 8px; display: flex; align-items: flex-end; overflow: hidden; }
+.pday .pbar i { display: block; width: 100%; background: var(--sky); }
+.pday.fire .pbar i { background: var(--orange-b); }
+
+/* dialogs */
+#veil { background: rgba(60, 50, 30, .45) !important; }
+#box { background: var(--card); border: 3px solid var(--line); border-radius: 22px; }

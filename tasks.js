@@ -1,0 +1,1 @@
+window.ALGOREA_TASKS = [];

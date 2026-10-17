@@ -1,0 +1,27 @@
+/* Task pages on a phone (the engine's "mobile first" layout). Loaded by bridge.js.
+   The bar at the bottom switches between the three views of a task: the problem (statement and
+   grid), the program (blocks) and the run. The engine shows the name of the open view only:
+   here every view keeps its name, and the three buttons share the width. */
+#modeSelector .mode { flex: 1 1 0 !important; justify-content: center !important; min-width: 0; }
+#modeSelector .mode#mode-editor.active { flex: 1.6 1 0 !important; justify-content: space-between !important; }
+#modeSelector #mode-player.active { flex: 1.6 1 0 !important; }
+#modeSelector .mode:not(.active) { background-color: #8ec3ec !important; color: #fff !important; }
+#modeSelector .mode:not(.active) .label { display: inline !important; }
+#modeSelector .mode .label { margin-left: 8px !important; white-space: nowrap; }
+#modeSelector #mode-player:not(.active)::after {
+   content: "Lancer"; text-transform: uppercase; font-weight: bold; margin-left: 8px; white-space: nowrap;
+}
+/* while running, the run button holds the player's controls: the two other views show their icon only */
+#task.mode-player #modeSelector .mode:not(.active) .label { display: none !important; }
+#task.mode-player #modeSelector #mode-player.active { flex: 4 1 0 !important; }
+/* the name of the run view in the language chosen in the trainer (lang.js sets <html lang>) */
+html:lang(en) #modeSelector #mode-player:not(.active)::after { content: "Run"; }
+html:lang(vi) #modeSelector #mode-player:not(.active)::after { content: "Chạy"; }
+
+/* the run view: the grid above, the program and its blocks below (bridge.js keeps the program
+   editable there), so a child can build and run without changing view */
+@media screen and (max-width: 767.9px) and (orientation: portrait) {
+   #miniPlatformHeader { display: none !important; }
+   #task { height: 100% !important; }   /* the engine leaves 40 px for that header */
+   #task.mode-player #introGrid { flex: 0 0 36% !important; min-height: 0; }
+}

@@ -1,0 +1,843 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Éditeur de problèmes</title>
+<script src="lang.js"></script>
+<script>AlgoreaLang.loadTaskTexts();</script>
+<style>
+   :root {
+      --bg: #171b21; --card: #22272e; --ink: #e3e7ec; --soft: #9aa4af; --line: #39414b;
+      --accent: #3d86d8; --warn: #ffb4a8; --ok: #7fd49a;
+      --blanche: #c3cad2; --jaune: #f0c000; --orange: #f08a00; --vert: #3aa655;
+      color-scheme: dark;
+   }
+   * { box-sizing: border-box; }
+   html, body { height: 100%; margin: 0; }
+   body { font-family: "Segoe UI", Roboto, Arial, sans-serif; background: var(--bg); color: var(--ink); font-size: 16px; display: flex; }
+   button { font: inherit; cursor: pointer; border: 1px solid var(--line); background: var(--card); color: var(--ink);
+            border-radius: 10px; padding: 8px 14px; min-height: 40px; }
+   button:hover { border-color: var(--accent); }
+   button.main { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+   button.on { background: var(--ink); border-color: var(--ink); color: var(--bg); }
+   button.danger:hover { border-color: var(--warn); color: var(--warn); }
+   input, select, textarea { font: inherit; background: var(--bg); color: var(--ink); border: 1px solid var(--line);
+            border-radius: 10px; padding: 8px 10px; }
+   textarea { width: 100%; min-height: 84px; resize: vertical; }
+   [hidden] { display: none !important; }
+   label { display: block; font-size: 14px; color: var(--soft); margin-bottom: 4px; }
+   h1 { font-size: 20px; margin: 0 0 12px; }
+   h2 { font-size: 16px; margin: 22px 0 8px; }
+
+   #side { width: 270px; flex: none; border-right: 1px solid var(--line); padding: 16px; overflow: auto; }
+   #side button { width: 100%; text-align: left; margin-bottom: 8px; }
+   #list button i { display: inline-block; width: 12px; height: 12px; border-radius: 50%; margin-right: 8px; }
+   #pending { font-size: 14px; color: var(--warn); margin: 10px 0; }
+   #main { flex: 1; overflow: auto; padding: 18px 24px 60px; }
+   .row { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; margin-bottom: 12px; }
+   .row > div { flex: 0 1 auto; }
+   .grow { flex: 1 1 260px !important; }
+   .grow input { width: 100%; }
+   .tabs { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+   .panel { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 16px; margin-top: 8px; }
+   .checks { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 6px 14px; }
+   .checks label { color: var(--ink); font-size: 15px; margin: 0; cursor: pointer; }
+   .checks input { margin-right: 6px; }
+   .group { margin: 14px 0 6px; font-weight: 600; font-size: 15px; }
+   .group button { min-height: 0; padding: 1px 9px; margin-left: 6px; font-size: 13px; font-weight: 400; color: var(--soft); }
+   #msg { margin: 0 0 8px; min-height: 24px; }
+   /* always in reach, however long the page is */
+   #actions { position: sticky; bottom: 0; background: var(--bg); padding: 10px 0 2px; margin-top: 12px;
+              border-top: 1px solid var(--line); z-index: 2; }
+   #actions .row { margin-bottom: 0; }
+   #msg.bad { color: var(--warn); } #msg.good { color: var(--ok); }
+
+   /* grid editor */
+   #palette { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0; }
+   .piece { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 6px 8px; min-width: 76px;
+            font-size: 13px; cursor: grab; }
+   .piece.on { background: var(--card); border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent); color: var(--ink); }
+   .tile { width: 44px; height: 44px; background: #e9edf1 center / contain no-repeat; border-radius: 4px; }
+   #grid { display: inline-grid; gap: 2px; background: var(--line); padding: 2px; border-radius: 6px; user-select: none; touch-action: none; }
+   #grid .cell { width: 46px; height: 46px; background: #e9edf1 center / contain no-repeat; position: relative; cursor: pointer; }
+   #grid .cell.over { outline: 3px solid var(--accent); outline-offset: -3px; }
+   #grid .cell .robot { position: absolute; inset: 0; background: center / contain no-repeat; pointer-events: none; }
+   #grid .cell .count { position: absolute; left: 1px; top: 1px; min-width: 18px; padding: 0 3px; border-radius: 9px;
+            background: #1f2933; color: #fff; font-size: 13px; font-weight: 700; text-align: center; pointer-events: none; }
+   #grid .cell .robot[data-dir]::after { content: attr(data-dir); position: absolute; right: 1px; bottom: -2px;
+            font-size: 17px; font-weight: 700; color: #b42318; }
+   .size button { min-height: 34px; padding: 4px 12px; }
+   .hint { color: var(--soft); font-size: 14px; margin: 6px 0; }
+
+   #veil { position: fixed; inset: 0; background: rgba(0, 0, 0, .7); display: flex; flex-direction: column; z-index: 10; }
+   #veil .bar { padding: 8px 12px; background: var(--card); display: flex; gap: 12px; align-items: center; }
+   #veil iframe { flex: 1; border: 0; width: 100%; }
+   @media (max-width: 760px) { body { flex-direction: column; } #side { width: auto; border-right: 0; border-bottom: 1px solid var(--line); } }
+   /* on a phone, the list and the open problem are two screens: choosing a problem opens it on its own */
+   #tolist { display: none; margin: 0 0 12px; }
+   @media (max-width: 760px) {
+      body.editing #side, body:not(.editing) #main { display: none; }
+      body.editing #tolist { display: inline-block; }
+      #main { padding: 12px 14px 40px; }
+      #form select, #form input, #form textarea { max-width: 100%; }
+      .row > div { max-width: 100%; }
+      #actions .row { gap: 8px; }
+      #actions button { padding: 6px 12px; }
+   }
+</style>
+<link rel="stylesheet" href="theme.css">
+</head>
+<body>
+
+<div id="side">
+   <h1 data-t="mine">Mes problèmes</h1>
+   <button class="main" id="new" data-t="newProblem">＋ Nouveau problème</button>
+   <div id="list"></div>
+   <div id="pending" hidden data-t="pending">Des changements ne sont enregistrés que dans ce navigateur.</div>
+   <button id="import" title="Ouvrir un problème reçu par un lien" data-t="import" data-tip="importTip">📥 Ouvrir un problème reçu</button>
+   <button id="export" title="Écrit mes_problemes/data.js, pour le zip, git ou un autre PC" data-t="export" data-tip="exportTip">Exporter vers le dossier</button>
+   <button id="home" data-t="home">← Retour à l'entraînement</button>
+</div>
+
+<div id="main">
+   <div id="empty" class="hint" data-t="empty">Choisissez un problème à gauche, ou créez-en un nouveau.</div>
+   <div id="form" hidden>
+      <button id="tolist"></button>
+      <div class="row">
+         <div class="grow"><label for="title" data-t="title">Titre</label><input id="title" maxlength="60"></div>
+         <div><label for="color" data-t="category">Catégorie</label>
+            <select id="color">
+               <option value="blanche" data-t="blanche">Blanche (débutant)</option><option value="jaune" data-t="jaune">Jaune</option>
+               <option value="orange" data-t="orange">Orange</option><option value="vert" data-t="vert">Verte</option>
+            </select></div>
+         <div><label for="world" data-t="world">Monde</label><select id="world"></select></div>
+      </div>
+
+      <h2><span data-t="versions">Versions</span> <span class="hint" data-t="versionsHint">(du plus facile ★ au plus difficile ★★★★)</span></h2>
+      <div class="tabs" id="versions"></div>
+
+      <div class="panel">
+         <label for="text" data-t="statement">Consigne (une phrase par ligne)</label>
+         <textarea id="text"></textarea>
+         <div class="row" style="margin-top:12px">
+            <div><label for="max" data-t="max">Nombre de blocs autorisés</label><input id="max" type="number" min="1" max="200" style="width:110px"></div>
+            <div><button id="delversion" class="danger" data-t="delVersion">Supprimer cette version</button></div>
+         </div>
+         <h2><span data-t="tests">Tests</span> <span class="hint" data-t="testsHint">(le même programme doit réussir tous les tests)</span></h2>
+         <div class="tabs" id="tests"></div>
+         <div class="hint" data-t="dragHint">Glissez une pièce sur la grille, ou cliquez sur une pièce puis sur les cases. On peut aussi déplacer une pièce déjà posée.</div>
+         <div id="palette"></div>
+         <div class="row" id="countrow">
+            <div><label for="count" data-t="count">Nombre écrit sur la prochaine pièce posée (poissons du filet, ou poissons demandés par l'île)</label>
+               <input id="count" type="number" min="1" max="99" value="5" style="width:90px">
+               <span class="hint" data-t="countHint">Pour changer un nombre : tapez-le ici, puis cliquez de nouveau sur la case avec la même pièce.</span></div>
+         </div>
+         <div class="row size">
+            <div><label data-t="rows">Lignes</label><button data-size="rows,-1">−</button> <span id="nrows"></span> <button data-size="rows,1">＋</button></div>
+            <div><label data-t="cols">Colonnes</label><button data-size="cols,-1">−</button> <span id="ncols"></span> <button data-size="cols,1">＋</button></div>
+         </div>
+         <div class="row" id="facing">
+            <div><label data-t="facing">Le robot regarde vers</label>
+               <button data-dir="0" data-t="dir0">→ l'est</button> <button data-dir="1" data-t="dir1">↓ le sud</button>
+               <button data-dir="2" data-t="dir2">← l'ouest</button> <button data-dir="3" data-t="dir3">↑ le nord</button></div>
+         </div>
+         <div id="grid"></div>
+
+         <h2 data-t="blocks">Blocs que l'enfant peut utiliser</h2>
+         <div class="row"><button id="allblocks" data-t="allBlocks">Tout cocher</button> <button id="noblocks" data-t="noBlocks">Ne garder que les déplacements</button></div>
+         <div id="blocks"></div>
+      </div>
+
+      <div id="actions">
+      <div id="msg"></div>
+      <div id="sharebox" hidden><input id="sharelink" readonly style="width:100%"></div>
+      <div class="row">
+         <button class="main" id="save" data-t="save">Enregistrer</button>
+         <button id="try" data-t="try">▶ Essayer</button>
+         <button id="share" title="Envoyer un lien : on peut jouer au problème dans un navigateur ou dans l'application" data-t="share" data-tip="shareTip">🔗 Partager</button>
+         <button id="delete" class="danger" data-t="delete">Supprimer le problème</button>
+      </div>
+      </div>
+   </div>
+</div>
+
+<div id="veil" hidden>
+   <div class="bar"><button id="closetry" data-t="closeTry">← Revenir à l'éditeur</button><span id="trytitle"></span></div>
+   <iframe id="tryframe" title="Essai" data-tip="tryFrame"></iframe>
+</div>
+
+<script src="mes_problemes/data.js"></script>
+<script src="mes_problemes/store.js"></script>
+<script src="mes_problemes/share.js"></script>
+<script>
+(function () {
+   'use strict';
+   var C = window.AlgoreaCustom;
+   var L = window.AlgoreaLang;
+   var T = L.pick({
+      fr: {
+         unsaved: 'Les changements de ce problème ne sont pas enregistrés. Revenir à la liste quand même ?',
+         pageTitle: 'Éditeur de problèmes', mine: 'Mes problèmes', newProblem: '＋ Nouveau problème',
+         pending: 'Des changements ne sont enregistrés que dans ce navigateur.',
+         import: '📥 Ouvrir un problème reçu', importTip: 'Ouvrir un problème reçu par un lien',
+         export: 'Exporter vers le dossier', exportTip: 'Écrit mes_problemes/data.js, pour le zip, git ou un autre PC',
+         home: '← Retour à l\'entraînement', empty: 'Choisissez un problème à gauche, ou créez-en un nouveau.',
+         title: 'Titre', category: 'Catégorie', blanche: 'Blanche (débutant)', jaune: 'Jaune', orange: 'Orange', vert: 'Verte',
+         world: 'Monde', versions: 'Versions', versionsHint: '(du plus facile ★ au plus difficile ★★★★)',
+         statement: 'Consigne (une phrase par ligne)', max: 'Nombre de blocs autorisés', delVersion: 'Supprimer cette version',
+         tests: 'Tests', testsHint: '(le même programme doit réussir tous les tests)',
+         dragHint: 'Glissez une pièce sur la grille, ou cliquez sur une pièce puis sur les cases. On peut aussi déplacer une pièce déjà posée.',
+         count: 'Nombre écrit sur la prochaine pièce posée (poissons du filet, ou poissons demandés par l\'île)',
+         countHint: 'Pour changer un nombre : tapez-le ici, puis cliquez de nouveau sur la case avec la même pièce.',
+         rows: 'Lignes', cols: 'Colonnes', facing: 'Le robot regarde vers',
+         dir0: '→ l\'est', dir1: '↓ le sud', dir2: '← l\'ouest', dir3: '↑ le nord',
+         blocks: 'Blocs que l\'enfant peut utiliser', allBlocks: 'Tout cocher', noBlocks: 'Ne garder que les déplacements',
+         save: 'Enregistrer', try: '▶ Essayer', share: '🔗 Partager',
+         shareTip: 'Envoyer un lien : on peut jouer au problème dans un navigateur ou dans l\'application',
+         delete: 'Supprimer le problème', closeTry: '← Revenir à l\'éditeur', tryFrame: 'Essai',
+         defaultText: 'Programme le robot pour {goal}.', worldOption: '{name} : {goal}',
+         addVersion: 'Ajouter une version', robotActions: 'Robot : actions', robotSensors: 'Robot : capteurs',
+         all: 'tout', none: 'rien', checkAll: 'Cocher tous les blocs « {name} »', uncheckAll: 'Décocher tous les blocs « {name} »',
+         test: 'Test {n}', addTest: '＋ test', addTestTip: 'Ajouter un test (copie de celui-ci)', delTest: 'Supprimer ce test',
+         robot: 'Robot', newTitle: 'Nouveau problème',
+         needTitle: 'Donnez un titre au problème.', versionName: 'Version {stars}', testName: '{version}, test {n} : ',
+         needMax: '{version} : indiquez le nombre de blocs autorisés.',
+         needMove: '{version} : cochez au moins un bloc pour avancer.',
+         needBlock: '{version} : cochez le bloc « {block} ».',
+         needRobot: 'posez le robot sur la grille.', needOne: 'il faut exactement une pièce « {piece} ».',
+         needSome: 'il faut au moins une pièce « {piece} ».',
+         notEnough: 'il n\'y a pas assez de {what} : {have} pour {want} demandés.',
+         needEnough: 'il faut au moins autant de « {a} » que de « {b} ».',
+         saved: 'Enregistré. Le problème est dans l\'entraînement, sous « Mes problèmes ».',
+         noDraft: 'Ce navigateur refuse de garder le brouillon : l\'essai est impossible.',
+         tryTitle: '{title} — essai (rien n\'est enregistré)', confirmDelete: 'Supprimer « {title} » ?',
+         copied: 'Lien copié : colle-le dans un message.', sent: 'Lien envoyé.', shown: 'Voici le lien à envoyer :',
+         shareFailed: 'Partage impossible : {why}', askCode: 'Colle le lien ou le code du problème reçu :',
+         received: 'Problème reçu et gardé dans « Mes problèmes ». Tu peux le modifier.',
+         unreadable: 'Ce lien ne contient pas de problème lisible ({why}).',
+         exported: 'Exporté dans data.js.',
+         downloaded: 'Fichier data.js téléchargé : placez-le dans le dossier mes_problemes (remplacez l\'ancien).',
+         wrongFile: 'Le fichier doit s\'appeler data.js, dans le dossier mes_problemes.'
+      },
+      en: {
+         unsaved: 'The changes to this problem are not saved. Go back to the list anyway?',
+         pageTitle: 'Problem editor', mine: 'My problems', newProblem: '＋ New problem',
+         pending: 'Some changes are only saved in this browser.',
+         import: '📥 Open a problem I received', importTip: 'Open a problem received as a link',
+         export: 'Export to the folder', exportTip: 'Writes mes_problemes/data.js, for the zip, git or another computer',
+         home: '← Back to training', empty: 'Choose a problem on the left, or make a new one.',
+         title: 'Title', category: 'Category', blanche: 'White (beginner)', jaune: 'Yellow', orange: 'Orange', vert: 'Green',
+         world: 'World', versions: 'Versions', versionsHint: '(from the easiest ★ to the hardest ★★★★)',
+         statement: 'Instructions (one sentence per line)', max: 'Number of blocks allowed', delVersion: 'Delete this version',
+         tests: 'Tests', testsHint: '(the same program must pass every test)',
+         dragHint: 'Drag a piece onto the grid, or click a piece and then the cells. You can also move a piece that is already on the grid.',
+         count: 'Number written on the next piece you put down (fish in the net, or fish the island asks for)',
+         countHint: 'To change a number: type it here, then click the cell again with the same piece.',
+         rows: 'Rows', cols: 'Columns', facing: 'The robot is facing',
+         dir0: '→ right', dir1: '↓ down', dir2: '← left', dir3: '↑ up',
+         blocks: 'Blocks the child can use', allBlocks: 'Tick all', noBlocks: 'Keep only the moves',
+         save: 'Save', try: '▶ Try it', share: '🔗 Share',
+         shareTip: 'Send a link: the problem can be played in a browser or in the app',
+         delete: 'Delete the problem', closeTry: '← Back to the editor', tryFrame: 'Trial',
+         defaultText: 'Program the robot to {goal}.', worldOption: '{name}: {goal}',
+         addVersion: 'Add a version', robotActions: 'Robot: actions', robotSensors: 'Robot: sensors',
+         all: 'all', none: 'none', checkAll: 'Tick all the “{name}” blocks', uncheckAll: 'Untick all the “{name}” blocks',
+         test: 'Test {n}', addTest: '＋ test', addTestTip: 'Add a test (a copy of this one)', delTest: 'Delete this test',
+         robot: 'Robot', newTitle: 'New problem',
+         needTitle: 'Give the problem a title.', versionName: 'Version {stars}', testName: '{version}, test {n}: ',
+         needMax: '{version}: enter the number of blocks allowed.',
+         needMove: '{version}: tick at least one block to move.',
+         needBlock: '{version}: tick the “{block}” block.',
+         needRobot: 'put the robot on the grid.', needOne: 'there must be exactly one “{piece}” piece.',
+         needSome: 'there must be at least one “{piece}” piece.',
+         notEnough: 'there are not enough {what}: {have} for {want} asked for.',
+         needEnough: 'there must be at least as many “{a}” as “{b}”.',
+         saved: 'Saved. The problem is in the training, under “My problems”.',
+         noDraft: 'This browser will not keep the draft: the trial is not possible.',
+         tryTitle: '{title} — trial (nothing is saved)', confirmDelete: 'Delete “{title}”?',
+         copied: 'Link copied: paste it into a message.', sent: 'Link sent.', shown: 'Here is the link to send:',
+         shareFailed: 'Sharing failed: {why}', askCode: 'Paste the link or the code of the problem you received:',
+         received: 'Problem received and kept in “My problems”. You can change it.',
+         unreadable: 'This link does not contain a problem that can be read ({why}).',
+         exported: 'Exported to data.js.',
+         downloaded: 'File data.js downloaded: put it in the mes_problemes folder (replace the old one).',
+         wrongFile: 'The file must be called data.js, in the mes_problemes folder.'
+      },
+      vi: {
+         unsaved: 'Những thay đổi của bài này chưa được lưu. Vẫn quay lại danh sách?',
+         pageTitle: 'Trình soạn bài', mine: 'Bài của tôi', newProblem: '＋ Bài mới',
+         pending: 'Một số thay đổi chỉ được lưu trong trình duyệt này.',
+         import: '📥 Mở bài được gửi cho bạn', importTip: 'Mở một bài nhận được qua đường link',
+         export: 'Xuất ra thư mục', exportTip: 'Ghi tệp mes_problemes/data.js, để dùng cho tệp zip, git hoặc máy tính khác',
+         home: '← Quay lại luyện tập', empty: 'Hãy chọn một bài ở bên trái, hoặc tạo một bài mới.',
+         title: 'Tên bài', category: 'Hạng', blanche: 'Trắng (mới bắt đầu)', jaune: 'Vàng', orange: 'Cam', vert: 'Xanh lá',
+         world: 'Thế giới', versions: 'Các mức', versionsHint: '(từ dễ nhất ★ đến khó nhất ★★★★)',
+         statement: 'Đề bài (mỗi dòng một câu)', max: 'Số khối lệnh được dùng', delVersion: 'Xóa mức này',
+         tests: 'Bài kiểm tra', testsHint: '(cùng một chương trình phải vượt qua tất cả các bài kiểm tra)',
+         dragHint: 'Kéo một vật vào lưới, hoặc bấm vào một vật rồi bấm vào các ô. Bạn cũng có thể di chuyển một vật đã đặt.',
+         count: 'Số ghi trên vật sẽ đặt tiếp theo (số cá trong lưới, hoặc số cá hòn đảo cần)',
+         countHint: 'Để đổi một số: gõ số đó vào đây, rồi bấm lại vào ô với cùng một vật.',
+         rows: 'Hàng', cols: 'Cột', facing: 'Rô-bốt nhìn về phía',
+         dir0: '→ bên phải', dir1: '↓ bên dưới', dir2: '← bên trái', dir3: '↑ bên trên',
+         blocks: 'Các khối lệnh bạn nhỏ được dùng', allBlocks: 'Chọn tất cả', noBlocks: 'Chỉ giữ các khối di chuyển',
+         save: 'Lưu', try: '▶ Thử', share: '🔗 Chia sẻ',
+         shareTip: 'Gửi một đường link: có thể chơi bài này trong trình duyệt hoặc trong ứng dụng',
+         delete: 'Xóa bài', closeTry: '← Quay lại trình soạn', tryFrame: 'Chơi thử',
+         defaultText: 'Hãy lập trình cho rô-bốt {goal}.', worldOption: '{name}: {goal}',
+         addVersion: 'Thêm một mức', robotActions: 'Rô-bốt: hành động', robotSensors: 'Rô-bốt: cảm biến',
+         all: 'tất cả', none: 'bỏ hết', checkAll: 'Chọn tất cả các khối “{name}”', uncheckAll: 'Bỏ chọn tất cả các khối “{name}”',
+         test: 'Kiểm tra {n}', addTest: '＋ kiểm tra', addTestTip: 'Thêm một bài kiểm tra (bản sao của bài này)', delTest: 'Xóa bài kiểm tra này',
+         robot: 'Rô-bốt', newTitle: 'Bài mới',
+         needTitle: 'Hãy đặt tên cho bài.', versionName: 'Mức {stars}', testName: '{version}, kiểm tra {n}: ',
+         needMax: '{version}: hãy nhập số khối lệnh được dùng.',
+         needMove: '{version}: hãy chọn ít nhất một khối để di chuyển.',
+         needBlock: '{version}: hãy chọn khối “{block}”.',
+         needRobot: 'hãy đặt rô-bốt lên lưới.', needOne: 'cần đúng một “{piece}”.',
+         needSome: 'cần ít nhất một “{piece}”.',
+         notEnough: 'chưa đủ {what}: có {have}, cần {want}.',
+         needEnough: 'số “{a}” phải ít nhất bằng số “{b}”.',
+         saved: 'Đã lưu. Bài này nằm trong phần luyện tập, ở mục “Bài của tôi”.',
+         noDraft: 'Trình duyệt này không cho lưu bản nháp: không thể chơi thử.',
+         tryTitle: '{title} — chơi thử (không có gì được lưu)', confirmDelete: 'Xóa “{title}”?',
+         copied: 'Đã sao chép đường link: hãy dán vào một tin nhắn.', sent: 'Đã gửi đường link.', shown: 'Đây là đường link để gửi:',
+         shareFailed: 'Không chia sẻ được: {why}', askCode: 'Hãy dán đường link hoặc mã của bài bạn nhận được:',
+         received: 'Đã nhận bài và lưu vào “Bài của tôi”. Bạn có thể sửa bài này.',
+         unreadable: 'Đường link này không có bài nào đọc được ({why}).',
+         exported: 'Đã xuất ra data.js.',
+         downloaded: 'Đã tải tệp data.js: hãy đặt tệp vào thư mục mes_problemes (thay tệp cũ).',
+         wrongFile: 'Tệp phải có tên data.js, trong thư mục mes_problemes.'
+      }
+   });
+   function f(key, args) { return L.fmt(T[key], args || {}); }
+   Array.prototype.forEach.call(document.querySelectorAll('[data-t]'), function (el) { el.textContent = T[el.dataset.t]; });
+   Array.prototype.forEach.call(document.querySelectorAll('[data-tip]'), function (el) { el.title = T[el.dataset.tip]; });
+   document.title = T.pageTitle;
+   function $(id) { return document.getElementById(id); }
+
+   var current = null;   // the problem being edited (a copy; saved only by "Enregistrer")
+   var iVersion = 0, iTest = 0;
+   var piece = 1;        // selected piece: a tile number, or 'robot'
+   var dragged = null;   // what is being dragged: { piece } from the palette or { row, col } from the grid
+   var painting = false; // true while the mouse is pressed and slides over the grid
+   var ARROWS = ['→', '↓', '←', '↑'];   // robot facing east, south, west, north
+   document.addEventListener('mouseup', function () { painting = false; });
+
+   function world() { return C.WORLDS[current.world]; }
+   function version() { return current.versions[iVersion]; }
+   function test() { return version().tests[iTest]; }
+   function img(name) { return 'url("mes_problemes/' + world().images + '/' + name + '")'; }
+   function say(text, kind) { $('msg').textContent = text || ''; $('msg').className = kind || ''; $('sharebox').hidden = true; }
+
+   // the usual way to move in this world (no "reculer": children rarely need it)
+   function defaultMoves() { return C.moves(current.world).filter(function (b) { return b !== 'backwards'; }); }
+   // shows the robot: the turning robot's picture is a strip of 9 drawings, the first one is used
+   function showRobot(el) {
+      el.style.backgroundImage = img(world().robot + '.png');
+      el.style.backgroundSize = world().turns ? '900% auto' : 'contain';
+      el.style.backgroundPosition = world().turns ? 'left center' : 'center';
+   }
+
+   function showPiece(el, piece) {
+      if (!piece || !piece.img) { return; }
+      el.style.backgroundImage = img(piece.img) + (piece.under ? ', ' + img(piece.under) : '');
+   }
+
+   function newTest(rows, cols) {
+      var tiles = [];
+      for (var r = 0; r < rows; r++) { tiles.push(new Array(cols).fill(1)); }
+      return { tiles: tiles, robot: { row: Math.floor(rows / 2), col: 0, dir: 0 } };
+   }
+   function newVersion(stars) {
+      return { stars: stars, text: f('defaultText', { goal: world().goal }), max: 10,
+               blocks: defaultMoves(), tests: [newTest(3, 6)] };
+   }
+
+   /* ---------- list of problems ---------- */
+   function renderList() {
+      var box = $('list');
+      box.innerHTML = '';
+      C.all().forEach(function (p) {
+         var b = document.createElement('button');
+         if (current && current.id === p.id) { b.className = 'on'; }
+         b.innerHTML = '<i style="background:var(--' + (p.color || 'blanche') + ')"></i>';
+         // a starter problem shows its title in the child's language; the editor opens the original
+         b.appendChild(document.createTextNode(C.shown(p).title));
+         b.onclick = function () { open(p); };
+         box.appendChild(b);
+      });
+      $('pending').hidden = !C.pending() || !!window.AndroidBridge;
+   }
+
+   function open(problem) {
+      current = JSON.parse(JSON.stringify(problem));
+      iVersion = 0; iTest = 0; piece = 1;
+      $('empty').hidden = true;
+      $('form').hidden = false;
+      document.body.classList.add('editing');
+      window.scrollTo(0, 0);
+      say('');
+      render();
+      renderList();
+   }
+
+   // back to the list (on a phone the list is a screen of its own); asks first when changes are not saved
+   function closeForm(ask) {
+      if (ask && current) {
+         var saved = current.id && C.get(current.id);
+         if (!saved || JSON.stringify(saved) !== JSON.stringify(current)) { if (!confirm(T.unsaved)) { return false; } }
+      }
+      current = null;
+      $('form').hidden = true;
+      $('empty').hidden = false;
+      document.body.classList.remove('editing');
+      renderList();
+      return true;
+   }
+   $('tolist').textContent = '← ' + T.mine;
+   $('tolist').onclick = function () { closeForm(true); };
+
+   /* ---------- form ---------- */
+   function render() {
+      $('title').value = current.title;
+      $('color').value = current.color || 'blanche';
+      $('world').innerHTML = Object.keys(C.WORLDS).map(function (w) {
+         return '<option value="' + w + '">' + f('worldOption', { name: C.WORLDS[w].name, goal: C.WORLDS[w].goal }) + '</option>';
+      }).join('');
+      $('world').value = current.world;
+      current.versions.sort(function (a, b) { return a.stars - b.stars; });
+
+      var tabs = $('versions');
+      tabs.innerHTML = '';
+      current.versions.forEach(function (v, i) {
+         var b = document.createElement('button');
+         b.textContent = '★'.repeat(v.stars);
+         b.className = i === iVersion ? 'on' : '';
+         b.onclick = function () { iVersion = i; iTest = 0; render(); };
+         tabs.appendChild(b);
+      });
+      [1, 2, 3, 4].forEach(function (stars) {
+         if (current.versions.some(function (v) { return v.stars === stars; })) { return; }
+         var b = document.createElement('button');
+         b.textContent = '＋ ' + '★'.repeat(stars);
+         b.title = T.addVersion;
+         b.onclick = function () {
+            // a new version starts as a copy of the one on screen: easier to make it a bit harder
+            var copy = JSON.parse(JSON.stringify(version()));
+            copy.stars = stars;
+            delete copy.solution;
+            current.versions.push(copy);
+            current.versions.sort(function (a, b2) { return a.stars - b2.stars; });
+            iVersion = current.versions.indexOf(copy); iTest = 0;
+            render();
+         };
+         tabs.appendChild(b);
+      });
+
+      var v = version();
+      $('text').value = v.text || '';
+      $('max').value = v.max;
+      $('delversion').hidden = current.versions.length < 2;
+
+      // the blocks, menu by menu: the robot's blocks of this world, then the general ones
+      var checks = $('blocks');
+      checks.innerHTML = '';
+      var every = world().blocks.concat(C.COMMON).map(function (x) { return x[0]; });
+      function setBlocks(wanted) {
+         // kept in the order of the menus, whatever the order of the clicks
+         v.blocks = every.filter(function (name) { return wanted.indexOf(name) >= 0; });
+         delete v.solution;
+      }
+      [{ name: T.robotActions, blocks: world().actions }, { name: T.robotSensors, blocks: world().sensors }]
+         .concat(C.GROUPS).forEach(function (group) {
+            var names = group.blocks.map(function (b) { return b[0]; });
+            var head = document.createElement('div');
+            head.className = 'group';
+            head.appendChild(document.createTextNode(group.name + ' '));
+            [[T.all, true], [T.none, false]].forEach(function (choice) {
+               var all = document.createElement('button');
+               all.textContent = choice[0];
+               all.title = f(choice[1] ? 'checkAll' : 'uncheckAll', { name: group.name });
+               all.onclick = function () {
+                  setBlocks(v.blocks.filter(function (b) { return names.indexOf(b) < 0; }).concat(choice[1] ? names : []));
+                  render();
+               };
+               head.appendChild(all);
+            });
+            checks.appendChild(head);
+            var box = document.createElement('div');
+            box.className = 'checks';
+            group.blocks.forEach(function (b) {
+               var l = document.createElement('label'), c = document.createElement('input');
+               c.type = 'checkbox';
+               c.checked = v.blocks.indexOf(b[0]) >= 0;
+               c.onchange = function () {
+                  setBlocks(v.blocks.filter(function (x) { return x !== b[0]; }).concat(c.checked ? [b[0]] : []));
+               };
+               l.appendChild(c);
+               l.appendChild(document.createTextNode(b[1]));
+               box.appendChild(l);
+            });
+            checks.appendChild(box);
+         });
+
+      var tt = $('tests');
+      tt.innerHTML = '';
+      v.tests.forEach(function (t, i) {
+         var b = document.createElement('button');
+         b.textContent = f('test', { n: i + 1 });
+         b.className = i === iTest ? 'on' : '';
+         b.onclick = function () { iTest = i; render(); };
+         tt.appendChild(b);
+      });
+      var add = document.createElement('button');
+      add.textContent = T.addTest;
+      add.title = T.addTestTip;
+      add.onclick = function () {
+         v.tests.push(JSON.parse(JSON.stringify(test())));
+         iTest = v.tests.length - 1;
+         delete v.solution;
+         render();
+      };
+      tt.appendChild(add);
+      if (v.tests.length > 1) {
+         var del = document.createElement('button');
+         del.textContent = T.delTest;
+         del.className = 'danger';
+         del.onclick = function () { v.tests.splice(iTest, 1); iTest = 0; delete v.solution; render(); };
+         tt.appendChild(del);
+      }
+      // which way the robot looks, in the worlds where it turns
+      $('facing').hidden = !world().turns;
+      Array.prototype.forEach.call($('facing').querySelectorAll('button'), function (b) {
+         b.className = Number(b.dataset.dir) === (test().robot.dir || 0) ? 'on' : '';
+      });
+      $('countrow').hidden = !world().pieces.some(function (p) { return p.counted; });
+      renderPalette();
+      renderGrid();
+   }
+
+   /* ---------- palette and grid ---------- */
+   function pieces() {
+      return [{ num: 'robot', name: T.robot }].concat(world().pieces);
+   }
+
+   function renderPalette() {
+      var box = $('palette');
+      box.innerHTML = '';
+      pieces().forEach(function (p) {
+         var b = document.createElement('button');
+         b.className = 'piece' + (piece === p.num ? ' on' : '');
+         b.draggable = true;
+         b.innerHTML = '<span class="tile"></span>';
+         if (p.num === 'robot') { showRobot(b.firstChild); }
+         else { showPiece(b.firstChild, p); }
+         b.appendChild(document.createTextNode(p.name));
+         b.onclick = function () { piece = p.num; renderPalette(); };
+         b.ondragstart = function (e) { dragged = { piece: p.num }; e.dataTransfer.setData('text/plain', 'piece'); };
+         box.appendChild(b);
+      });
+   }
+
+   function put(row, col, what, number) {
+      var t = test();
+      function solid(num) { return world().pieces.some(function (p) { return p.num === num && p.solid; }); }
+      if (what === 'robot') {
+         // the robot cannot start on a wall, a crate, the flag...: that cell is emptied
+         if (solid(t.tiles[row][col])) { t.tiles[row][col] = 1; }
+         t.robot = { row: row, col: col, dir: t.robot.dir || 0 };
+      } else {
+         t.tiles[row][col] = what;
+         t.counts = t.counts || {};
+         if (world().pieces.some(function (p) { return p.num === what && p.counted; })) {
+            t.counts[row + ',' + col] = number === undefined ? Math.max(1, Math.min(99, Number($('count').value) || 1)) : number;
+         } else {
+            delete t.counts[row + ',' + col];
+         }
+         if (solid(what) && t.robot.row === row && t.robot.col === col) {
+            t.robot = { row: -1, col: -1, dir: t.robot.dir || 0 };
+         }
+      }
+      delete version().solution;
+   }
+
+   function renderGrid() {
+      var t = test(), grid = $('grid');
+      $('nrows').textContent = t.tiles.length;
+      $('ncols').textContent = t.tiles[0].length;
+      grid.style.gridTemplateColumns = 'repeat(' + t.tiles[0].length + ', 46px)';
+      grid.innerHTML = '';
+      grid.onmouseleave = function () { painting = false; };
+      t.tiles.forEach(function (line, row) {
+         line.forEach(function (num, col) {
+            var cell = document.createElement('div');
+            cell.className = 'cell';
+            var def = world().pieces.filter(function (p) { return p.num === num; })[0];
+            showPiece(cell, def);
+            if (def && def.counted) {
+               var badge = document.createElement('span');
+               badge.className = 'count';
+               badge.textContent = C.countAt(t, row, col);
+               badge.title = C.countAt(t, row, col) + ' ' + def.counted;
+               cell.appendChild(badge);
+            }
+            var hasRobot = t.robot.row === row && t.robot.col === col;
+            if (hasRobot) {
+               var r = document.createElement('div');
+               r.className = 'robot';
+               showRobot(r);
+               if (world().turns) { r.dataset.dir = ARROWS[t.robot.dir || 0]; }
+               cell.appendChild(r);
+            }
+            // click, or press and slide, puts the selected piece
+            cell.onmousedown = function (e) {
+               // sliding paints from an empty cell only: a piece already there is dragged instead
+               painting = e.button === 0 && piece !== 'robot' && !cell.draggable;
+            };
+            cell.onclick = function () { put(row, col, piece); renderGrid(); };
+            cell.onmouseenter = function () { if (painting) { put(row, col, piece); renderGrid(); } };
+            // a piece already on the grid can be dragged to another cell
+            if (hasRobot || num !== 1) {
+               cell.draggable = true;
+               cell.ondragstart = function (e) {
+                  painting = false;
+                  dragged = { row: row, col: col, piece: hasRobot ? 'robot' : num,
+                              count: def && def.counted ? C.countAt(t, row, col) : undefined };
+                  e.dataTransfer.setData('text/plain', 'cell');
+               };
+            }
+            cell.ondragover = function (e) { e.preventDefault(); cell.classList.add('over'); };
+            cell.ondragleave = function () { cell.classList.remove('over'); };
+            cell.ondrop = function (e) {
+               e.preventDefault();
+               if (!dragged) { return; }
+               if (dragged.row !== undefined && dragged.piece !== 'robot') { put(dragged.row, dragged.col, 1); }
+               put(row, col, dragged.piece, dragged.count);
+               dragged = null;
+               renderGrid();
+            };
+            grid.appendChild(cell);
+         });
+      });
+   }
+
+   function resize(what, delta) {
+      var t = test(), rows = t.tiles.length, cols = t.tiles[0].length;
+      if (what === 'rows') {
+         if (delta > 0 && rows < 14) { t.tiles.push(new Array(cols).fill(1)); }
+         if (delta < 0 && rows > 1) { t.tiles.pop(); }
+      } else {
+         if (delta > 0 && cols < 20) { t.tiles.forEach(function (l) { l.push(1); }); }
+         if (delta < 0 && cols > 2) { t.tiles.forEach(function (l) { l.pop(); }); }
+      }
+      if (t.robot.row >= t.tiles.length || t.robot.col >= t.tiles[0].length) {
+         t.robot = { row: -1, col: -1, dir: t.robot.dir || 0 };
+      }
+      delete version().solution;
+      renderGrid();
+   }
+
+   /* ---------- checks before saving ---------- */
+   function problemsFound() {
+      if (!current.title.trim()) { return T.needTitle; }
+      for (var i = 0; i < current.versions.length; i++) {
+         var v = current.versions[i], name = f('versionName', { stars: '★'.repeat(v.stars) });
+         if (!(v.max >= 1)) { return f('needMax', { version: name }); }
+         var moves = v.blocks.filter(function (b) { return C.moves(current.world).indexOf(b) >= 0; });
+         if (!moves.length) { return f('needMove', { version: name }); }
+         var rules = world().rules || {};
+         var missing = (rules.blocks || []).filter(function (b) { return v.blocks.indexOf(b) < 0; });
+         if (missing.length) { return f('needBlock', { version: name, block: label(missing[0]) }); }
+         for (var j = 0; j < v.tests.length; j++) {
+            var t = v.tests[j], where = f('testName', { version: name, n: j + 1 });
+            var flat = [].concat.apply([], t.tiles);
+            var count = function (n) { return flat.filter(function (x) { return x === n; }).length; };
+            if (t.robot.row < 0) { return where + T.needRobot; }
+            if (rules.one && count(rules.one[0]) !== 1) {
+               return where + f('needOne', { piece: pieceName(rules.one[0]) });
+            }
+            if (rules.some && !count(rules.some[0])) {
+               return where + f('needSome', { piece: pieceName(rules.some[0]) });
+            }
+            var total = function (n) {
+               var sum = 0;
+               t.tiles.forEach(function (line, r) {
+                  line.forEach(function (x, col) { if (x === n) { sum += C.countAt(t, r, col); } });
+               });
+               return sum;
+            };
+            if (rules.supply && total(rules.supply[0]) < total(rules.supply[1])) {
+               return where + f('notEnough', { what: pieceCount(rules.supply[0]), have: total(rules.supply[0]),
+                  want: total(rules.supply[1]) });
+            }
+            if (rules.enough && count(rules.enough[0]) < count(rules.enough[1])) {
+               return where + f('needEnough', { a: pieceName(rules.enough[0]), b: pieceName(rules.enough[1]) });
+            }
+         }
+      }
+      return '';
+   }
+
+   function pieceName(num) {
+      return world().pieces.filter(function (p) { return p.num === num; })[0].name.toLowerCase();
+   }
+   function pieceCount(num) { return world().pieces.filter(function (p) { return p.num === num; })[0].counted; }
+   function label(block) {
+      return world().blocks.concat(C.COMMON).filter(function (b) { return b[0] === block; })[0][1];
+   }
+
+   function slug(text) {
+      var s = text.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/g, 'd').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+      return s || 'probleme';
+   }
+
+   /* ---------- buttons ---------- */
+   $('new').onclick = function () {
+      current = { world: 'course' };
+      open({ id: '', title: T.newTitle, color: 'blanche', world: 'course', versions: [newVersion(1)] });
+      render();
+   };
+   $('title').oninput = function () { current.title = $('title').value; };
+   $('color').onchange = function () { current.color = $('color').value; };
+   $('world').onchange = function () {
+      var before = f('defaultText', { goal: world().goal });
+      current.world = $('world').value;
+      var after = f('defaultText', { goal: world().goal });
+      // a consigne nobody rewrote follows the world
+      current.versions.forEach(function (v) { if (v.text === before) { v.text = after; } });
+      // pieces and blocks of the other world make no sense here
+      var nums = world().pieces.map(function (p) { return p.num; });
+      var names = world().blocks.concat(C.COMMON).map(function (b) { return b[0]; });
+      current.versions.forEach(function (v) {
+         v.blocks = v.blocks.filter(function (b) { return names.indexOf(b) >= 0; });
+         // the robot does not move the same way in every world
+         if (!v.blocks.some(function (b) { return C.moves(current.world).indexOf(b) >= 0; })) {
+            v.blocks = defaultMoves().concat(v.blocks);
+         }
+         (world().rules.blocks || []).forEach(function (b) { if (v.blocks.indexOf(b) < 0) { v.blocks.push(b); } });
+         v.tests.forEach(function (t) {
+            t.tiles = t.tiles.map(function (l) { return l.map(function (n) { return nums.indexOf(n) >= 0 ? n : 1; }); });
+            t.counts = {};
+         });
+         delete v.solution;
+      });
+      piece = 1;
+      render();
+   };
+   $('text').oninput = function () { version().text = $('text').value; };
+   $('max').oninput = function () { version().max = Number($('max').value); delete version().solution; };
+   $('delversion').onclick = function () { current.versions.splice(iVersion, 1); iVersion = 0; iTest = 0; render(); };
+   $('allblocks').onclick = function () {
+      version().blocks = world().blocks.concat(C.COMMON).map(function (b) { return b[0]; });
+      delete version().solution;
+      render();
+   };
+   $('noblocks').onclick = function () {
+      version().blocks = defaultMoves().concat(world().rules.blocks || []);
+      delete version().solution;
+      render();
+   };
+   document.querySelectorAll('[data-dir]').forEach(function (b) {
+      b.onclick = function () { test().robot.dir = Number(b.dataset.dir); delete version().solution; render(); };
+   });
+   document.querySelectorAll('[data-size]').forEach(function (b) {
+      b.onclick = function () { var a = b.dataset.size.split(','); resize(a[0], Number(a[1])); };
+   });
+
+   $('save').onclick = function () {
+      var bad = problemsFound();
+      if (bad) { say(bad, 'bad'); return; }
+      if (!current.id) {
+         var base = slug(current.title), id = base, n = 2;
+         while (C.get(id)) { id = base + '-' + n++; }
+         current.id = id;
+      }
+      C.save(JSON.parse(JSON.stringify(current)));
+      renderList();
+      say(T.saved, 'good');
+   };
+
+   $('try').onclick = function () {
+      var bad = problemsFound();
+      if (bad) { say(bad, 'bad'); return; }
+      try { localStorage.setItem('algoreaDraft', JSON.stringify(current)); }
+      catch (e) { say(T.noDraft, 'bad'); return; }
+      $('trytitle').textContent = f('tryTitle', { title: current.title });
+      $('tryframe').src = 'mes_problemes/task.html?draft=1&t=' + Date.now();
+      $('veil').hidden = false;
+   };
+   $('closetry').onclick = function () { $('veil').hidden = true; $('tryframe').src = 'about:blank'; };
+
+   $('delete').onclick = function () {
+      if (!current.id) { closeForm(false); return; }
+      if (!confirm(f('confirmDelete', { title: current.title }))) { return; }
+      C.remove(current.id);
+      closeForm(false);
+   };
+
+   $('share').onclick = function () {
+      var bad = problemsFound();
+      if (bad) { say(bad, 'bad'); return; }
+      window.AlgoreaShare.link(current).then(function (url) {
+         return window.AlgoreaShare.send(current.title, url).then(function (how) {
+            say(how === 'copied' ? T.copied : how === 'shared' ? T.sent : T.shown, 'good');
+            $('sharelink').value = url;
+            $('sharebox').hidden = false;
+         });
+      }).catch(function (e) { if (e.name !== 'AbortError') { say(f('shareFailed', { why: e.message }), 'bad'); } });
+   };
+
+   $('import').onclick = function () {
+      var text = prompt(T.askCode);
+      if (!text) { return; }
+      window.AlgoreaShare.decode(text).then(function (problem) {
+         var id = window.AlgoreaShare.keep(problem);
+         open(C.get(id));
+         say(T.received, 'good');
+      }).catch(function (e) { alert(f('unreadable', { why: e.message })); });
+   };
+
+   $('export').onclick = function () {
+      var all = C.all(), text = C.toDataFile(all);
+      function done(written) {
+         window.ALGOREA_CUSTOM = all;
+         if (written) { C.forgetLocal(); }
+         renderList();
+         say(written ? T.exported : T.downloaded, 'good');
+      }
+      if (window.showSaveFilePicker) {
+         // the browser asks where to save: choose the file data.js of the folder mes_problemes
+         window.showSaveFilePicker({ suggestedName: 'data.js', types: [{ description: 'data.js', accept: { 'text/javascript': ['.js'] } }] })
+            .then(function (handle) {
+               if (handle.name !== 'data.js') { throw new Error(T.wrongFile); }
+               return handle.createWritable().then(function (w) { return w.write(text).then(function () { return w.close(); }); });
+            })
+            .then(function () { done(true); })
+            .catch(function (e) { if (e.name !== 'AbortError') { say(e.message, 'bad'); } });
+      } else {
+         var a = document.createElement('a');
+         a.href = URL.createObjectURL(new Blob([text], { type: 'text/javascript' }));
+         a.download = 'data.js';
+         a.click();
+         done(false);
+      }
+   };
+   $('home').onclick = function () { location.href = 'algorea.html'; };
+   // the Android back button closes the trial first (see the application's MainActivity)
+   window.appBack = function () {
+      if (!$('veil').hidden) { $('closetry').onclick(); return true; }
+      // on a phone, an open problem goes back to the list
+      if (current && window.matchMedia('(max-width: 760px)').matches) { closeForm(true); return true; }
+      return false;
+   };
+
+   // in the Android application the problems live in the application: no folder to export to
+   if (window.AndroidBridge) { $('export').hidden = true; }
+   // editeur.html#open=<id> opens that problem (used by partage.html, "Modifier une copie")
+   var wanted = /#open=([^&]+)/.exec(location.hash);
+   if (wanted && C.get(decodeURIComponent(wanted[1]))) { open(C.get(decodeURIComponent(wanted[1]))); }
+   renderList();
+})();
+</script>
+</body>
+</html>

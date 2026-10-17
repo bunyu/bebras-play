@@ -1,0 +1,1290 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Algoréa</title>
+<script src="lang.js"></script>
+<style>
+   :root {
+      --bg: #171b21; --card: #22272e; --ink: #e3e7ec; --soft: #9aa4af; --line: #39414b;
+      --accent: #3d86d8; --star: #f2b01e; --star-off: #4a535e; --on: #e3e7ec; --on-ink: #171b21;
+      --blanche: #c3cad2; --jaune: #f0c000; --orange: #f08a00; --vert: #3aa655; --autre: #8f84e6;
+      color-scheme: dark;
+   }
+   * { box-sizing: border-box; }
+   html, body { height: 100%; margin: 0; }
+   body { font-family: "Segoe UI", Roboto, Arial, sans-serif; background: var(--bg); color: var(--ink); font-size: 16px; }
+   button { font: inherit; cursor: pointer; border: 1px solid var(--line); background: var(--card); color: var(--ink);
+            border-radius: 10px; padding: 10px 16px; min-height: 44px; }
+   button:hover { border-color: var(--accent); }
+   button.main { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+   button.on { background: var(--on); border-color: var(--on); color: var(--on-ink); }
+   [hidden] { display: none !important; }
+
+   /* ---------- home ---------- */
+   #home { max-width: 1200px; margin: 0 auto; padding: 16px; }
+   .top { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; }
+   .top h1 { font-size: 24px; margin: 0; }
+   .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 14px 0; }
+   .chip { border-radius: 999px; padding: 8px 16px; }
+   .chip i { display: inline-block; width: 12px; height: 12px; border-radius: 50%; margin-right: 6px; vertical-align: -1px; }
+   #progress { display: flex; flex-wrap: wrap; gap: 12px; margin: 6px 0 4px; }
+   .meter { flex: 1 1 180px; background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; }
+   .meter b { display: block; font-size: 14px; margin-bottom: 6px; }
+   .meter span { float: right; font-weight: 400; color: var(--soft); }
+   .bar { height: 10px; border-radius: 5px; background: var(--line); overflow: hidden; }
+   .bar div { height: 100%; }
+   h2 { font-size: 19px; margin: 26px 0 4px; }
+   h2 small { font-weight: 400; color: var(--soft); font-size: 14px; margin-left: 8px; }
+   .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 12px; margin-top: 10px; }
+   .card { text-align: left; padding: 12px 12px 12px 18px; border-radius: 12px; position: relative; min-height: 92px; overflow: hidden; }
+   .card::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 8px; background: var(--c); }
+   .card strong { display: block; font-size: 16px; line-height: 1.25; }
+   .card em { display: block; font-style: normal; font-size: 13px; color: var(--soft); margin: 4px 0 8px; }
+   .stars { letter-spacing: 2px; font-size: 20px; color: var(--star-off); white-space: nowrap; }
+   .stars b { color: var(--star); font-weight: 400; }
+   .card.done { background: #1f3327; }
+   .mock { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 12px; margin-top: 12px; }
+   .mock button { text-align: left; border-left: 8px solid var(--c); }
+   .mock em { display: block; font-style: normal; color: var(--soft); font-size: 13px; }
+   input[type=number], input[type=text] { background: var(--bg); color: var(--ink); font: inherit; padding: 9px 10px; border: 1px solid var(--line); border-radius: 10px; min-height: 44px; }
+   input[type=number] { width: 90px; }
+   p.note { color: var(--soft); margin: 6px 0; }
+
+   /* ---------- player ---------- */
+   #player { position: fixed; inset: 0; display: flex; flex-direction: column; background: var(--bg); }
+   #playbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 6px 10px; border-bottom: 1px solid var(--line); background: var(--card); }
+   #playbar button { padding: 6px 12px; min-height: 40px; }
+   #ptitle { font-weight: 600; margin: 0 6px; }
+   #ptitle small { font-weight: 400; color: var(--soft); margin-left: 6px; }
+   #clock { margin-left: auto; font-weight: 700; font-size: 20px; font-variant-numeric: tabular-nums; padding: 2px 12px; border-radius: 8px; background: var(--bg); }
+   #clock.late { background: #5a1f1f; color: #ffb4a8; }
+   #mocktabs { display: flex; gap: 6px; flex-wrap: wrap; }
+   #frames { flex: 1; position: relative; }
+   #frames iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; visibility: hidden; }
+   #frames iframe.on { visibility: visible; }
+
+   /* ---------- dialog ---------- */
+   #veil { position: fixed; inset: 0; background: rgba(0, 0, 0, .65); display: flex; align-items: center; justify-content: center; padding: 16px; z-index: 10; }
+   #box { background: var(--card); border-radius: 16px; padding: 22px; width: 100%; max-width: 520px; max-height: 90vh; overflow: auto; }
+   #box h3 { margin: 0 0 12px; font-size: 21px; }
+   #box .row { margin: 12px 0 0; }
+   #box table { width: 100%; border-collapse: collapse; margin-top: 6px; }
+   #box td { padding: 7px 4px; border-bottom: 1px solid var(--line); }
+   #box td:last-child { text-align: right; }
+   .ages { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+   .ages button { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 10px 6px; font-size: 15px; }
+   .ages button span { font-size: 34px; line-height: 1.1; }
+   #listen.on { background: var(--star); border-color: var(--star); color: var(--on-ink); }
+
+   /* ---------- the youngest (5 to 7): bigger, fewer words ---------- */
+   body.big { font-size: 20px; }
+   body.big .cards { grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px; }
+   body.big .card { min-height: 120px; padding: 16px 16px 16px 24px; border-radius: 18px; }
+   body.big .card::before { width: 14px; }
+   body.big .card strong { font-size: 22px; }
+   body.big .card em, body.big #progress, body.big #views { display: none; }
+   body.big .stars { font-size: 30px; }
+   body.big #playbar button { min-height: 52px; font-size: 22px; padding: 6px 16px; }
+   body.big #ptitle small { display: none; }
+   /* on a phone the bar above a problem stays on one line: icons, and the title cut if too long */
+   @media (max-width: 699px) {
+      #playbar { flex-wrap: nowrap; gap: 4px; padding: 4px 6px; }
+      #playbar button, body.big #playbar button { min-height: 40px; min-width: 36px; padding: 4px 6px; font-size: 17px; flex: none; }
+      #playbar .word, #ptitle small { display: none; }
+      #ptitle { flex: 1 1 auto; min-width: 0; margin: 0 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 16px; }
+      #pstars, body.big #pstars { flex: none; font-size: 15px; }
+      #mocktabs { flex-wrap: nowrap; overflow-x: auto; min-width: 0; }
+      #clock { font-size: 16px; padding: 2px 6px; }
+   }
+   /* a small phone: ◀ ▶ make room for the title (the list is one tap away with ←) */
+   @media (max-width: 480px) { #playbar #prev, #playbar #next { display: none; } }
+</style>
+<link rel="stylesheet" href="theme.css">
+</head>
+<body>
+
+<div id="home">
+   <div class="top">
+      <h1 data-t="home"></h1>
+      <span><button id="lang"></button> <button id="received" data-t="received"></button> <button id="editor" data-t="mine"></button> <button id="trophies"></button> <button id="who"></button></span>
+   </div>
+   <div class="row" id="views">
+      <button data-view="map" id="mapview"></button>
+      <button data-view="tour" data-t="byRound"></button>
+      <button data-view="skill" data-t="bySkill"></button>
+      <button data-view="mock" data-t="mockView"></button>
+   </div>
+   <div class="row" id="colors"></div>
+   <div id="progress"></div>
+   <div id="list"></div>
+</div>
+
+<div id="player" hidden>
+   <div id="playbar">
+      <button id="back" data-t="back"></button>
+      <button id="prev" data-title="prev">◀</button>
+      <button id="next" data-title="next">▶</button>
+      <button id="listen" data-title="listen">🔊</button>
+      <button id="guide" data-title="guideTip">🎓</button>
+      <button id="hint" data-title="hintTip">💡</button>
+      <button id="errors" data-title="errorsTip" hidden>⚠️</button>
+      <span id="ptitle"></span>
+      <span class="stars" id="pstars"></span>
+      <span id="mocktabs"></span>
+      <button id="solution" data-t="solutionBtn" hidden></button>
+      <span id="clock" hidden></span>
+      <button id="finish" class="main" data-t="finish" hidden></button>
+   </div>
+   <div id="frames"></div>
+</div>
+
+<div id="veil" hidden><div id="box"></div></div>
+
+<script src="tasks.js"></script>
+<script src="solutions.js"></script>
+<script src="mes_problemes/data.js"></script>
+<script src="mes_problemes/store.js"></script>
+<script src="mes_problemes/tutorials.js"></script>
+<script src="rea.js"></script>
+<script>AlgoreaLang.loadTaskTexts();</script>
+<script>
+(function () {
+   'use strict';
+
+   var TASKS = (window.ALGOREA_TASKS || []).slice();
+   var SOLUTIONS = window.ALGOREA_SOLUTIONS || {};
+   // "Mes problèmes", made with editeur.html
+   if (window.AlgoreaCustom) {
+      AlgoreaCustom.all().forEach(function (problem, i) {
+         var t = AlgoreaCustom.asTask(problem, i + 1);
+         TASKS.push(t);
+         problem.versions.forEach(function (v) {
+            if (v.solution) { (SOLUTIONS[t.id] = SOLUTIONS[t.id] || {})[AlgoreaCustom.levelOf(v)] = v.solution; }
+         });
+      });
+   }
+   var BY_ID = {};
+   TASKS.forEach(function (t) { BY_ID[t.id] = t; });
+   // "Learn to play" (mes_problemes/tutorials.js): kept apart from the lists and the progress bars
+   var TUTORIALS = (window.AlgoreaCustom ? window.ALGOREA_TUTORIALS || [] : []).map(function (problem, i) {
+      var t = AlgoreaCustom.asTask(problem, i + 1);
+      t.id = problem.id; t.path = 'mes_problemes/task.html?tutorial=' + problem.world;
+      t.title = problem.title; t.tutorial = problem.world; t.skill = undefined;
+      BY_ID[t.id] = t;
+      problem.versions.forEach(function (v) {
+         if (v.solution) { (SOLUTIONS[t.id] = SOLUTIONS[t.id] || {})[AlgoreaCustom.levelOf(v)] = v.solution; }
+      });
+      return t;
+   });
+
+   var L = window.AlgoreaLang;
+   var T = L.pick({
+      fr: {
+         home: 'Entraînement Algoréa', received: '📥 Problème reçu', mine: '✏️ Mes problèmes',
+         byRound: 'Par tour', bySkill: 'Par compétence', mockView: 'Tour blanc ⏱',
+         back: '← Retour', prev: 'Problème précédent', next: 'Problème suivant', listen: 'Écouter la consigne', guideTip: 'Comment jouer : le guide pas à pas', hintTip: 'Un indice de Réa',
+         learn: '🎓 Apprendre à jouer', learnAbout: 'un petit problème par monde, avec un guide pas à pas',
+         errorsTip: 'Ce qui n\'a pas marché (pour un parent)', solutionBtn: 'Solution (parent)', finish: 'Terminer',
+         colors: { blanche: 'Blanche', jaune: 'Jaune', orange: 'Orange', vert: 'Verte', autre: 'Autres' },
+         category: 'catégorie {name}', allColors: 'Toutes les couleurs',
+         skills: {
+            sequences: ['Suites d\'instructions', 'donner les ordres un par un'],
+            boucles: ['Boucles', 'répéter plusieurs fois'],
+            conditions: ['Conditions', 'si… alors… sinon'],
+            variables: ['Variables', 'garder un nombre en mémoire'],
+            fonctions: ['Fonctions', 'fabriquer son propre bloc'],
+            listes: ['Listes', 'ranger plusieurs valeurs']
+         },
+         version: 'Version {n}', ages: ['5 à 7 ans', '8 à 11 ans', '12 à 15 ans'],
+         round: '{year} · Tour {tour}', number: 'n° {n}', practice: 'Préparation', myProblems: 'Mes problèmes',
+         who: 'Qui joue ?', newName: 'Nouveau prénom', howOld: 'Quel âge as-tu ?', ageOf: 'Âge de {name} :',
+         wipe: 'Effacer les étoiles de {name}', close: 'Fermer', sounds: 'Sons et vibrations :', yes: 'Oui', no: 'Non', nameFirst: 'Écris d\'abord ton prénom',
+         parent: 'Pour un parent', howMuch: 'Combien font {a} × {b} ?', notThat: 'Ce n\'est pas ça. Combien font {a} × {b} ?',
+         ok: 'Valider', cancel: 'Annuler', noTasks: 'Aucun problème trouvé. Lancez update.bat pour créer la liste (tasks.js).',
+         mockTitle: 'Tour blanc', mockAbout: 'Comme le jour du concours : tous les problèmes d\'un tour, avec un chronomètre.',
+         minutes: 'Durée en minutes :', problems: '{n} problèmes', timeUp: 'Temps écoulé !', roundDone: 'Tour terminé',
+         total: 'Total', toHome: 'Retour à l\'accueil', solutionOf: 'Solution : {title}',
+         solutionAbout: 'Le programme remplace celui qui est à l\'écran.',
+         errorsTitle: 'Ce qui n\'a pas marché', errorsAbout: 'Une capture de cet écran aide à corriger l\'application.',
+         language: 'Langue'
+      },
+      en: {
+         home: 'Algoréa training', received: '📥 Problem received', mine: '✏️ My problems',
+         byRound: 'By round', bySkill: 'By skill', mockView: 'Practice round ⏱',
+         back: '← Back', prev: 'Previous problem', next: 'Next problem', listen: 'Listen to the instructions', guideTip: 'How to play: the step-by-step guide', hintTip: 'A hint from Réa',
+         learn: '🎓 Learn to play', learnAbout: 'one small problem per world, with a step-by-step guide',
+         errorsTip: 'What did not work (for a parent)', solutionBtn: 'Solution (parent)', finish: 'Finish',
+         colors: { blanche: 'White', jaune: 'Yellow', orange: 'Orange', vert: 'Green', autre: 'Others' },
+         category: '{name} category', allColors: 'All colours',
+         skills: {
+            sequences: ['Sequences', 'give the orders one by one'],
+            boucles: ['Loops', 'repeat several times'],
+            conditions: ['Conditions', 'if… then… else'],
+            variables: ['Variables', 'keep a number in memory'],
+            fonctions: ['Functions', 'make your own block'],
+            listes: ['Lists', 'store several values']
+         },
+         version: 'Version {n}', ages: ['5 to 7', '8 to 11', '12 to 15'],
+         round: '{year} · Round {tour}', number: 'no. {n}', practice: 'Practice', myProblems: 'My problems',
+         who: 'Who is playing?', newName: 'New first name', howOld: 'How old are you?', ageOf: '{name}\'s age:',
+         wipe: 'Erase {name}\'s stars', close: 'Close', sounds: 'Sounds and vibrations:', yes: 'Yes', no: 'No', nameFirst: 'Write your first name first',
+         parent: 'For a parent', howMuch: 'What is {a} × {b}?', notThat: 'That\'s not it. What is {a} × {b}?',
+         ok: 'OK', cancel: 'Cancel', noTasks: 'No problem found. Run update.bat to make the list (tasks.js).',
+         mockTitle: 'Practice round', mockAbout: 'Like on contest day: all the problems of a round, with a timer.',
+         minutes: 'Time in minutes:', problems: '{n} problems', timeUp: 'Time is up!', roundDone: 'Round finished',
+         total: 'Total', toHome: 'Back to the home page', solutionOf: 'Solution: {title}',
+         solutionAbout: 'The program replaces the one on the screen.',
+         errorsTitle: 'What did not work', errorsAbout: 'A screenshot of this screen helps fix the app.',
+         language: 'Language'
+      },
+      vi: {
+         home: 'Luyện tập Algoréa', received: '📥 Bài được gửi', mine: '✏️ Bài của tôi',
+         byRound: 'Theo vòng thi', bySkill: 'Theo kỹ năng', mockView: 'Thi thử ⏱',
+         back: '← Quay lại', prev: 'Bài trước', next: 'Bài sau', listen: 'Nghe đề bài', guideTip: 'Cách chơi: hướng dẫn từng bước', hintTip: 'Gợi ý của Réa',
+         learn: '🎓 Học cách chơi', learnAbout: 'mỗi thế giới một bài nhỏ, có hướng dẫn từng bước',
+         errorsTip: 'Những lỗi đã gặp (dành cho phụ huynh)', solutionBtn: 'Lời giải (phụ huynh)', finish: 'Kết thúc',
+         colors: { blanche: 'Trắng', jaune: 'Vàng', orange: 'Cam', vert: 'Xanh lá', autre: 'Khác' },
+         category: 'hạng {name}', allColors: 'Tất cả các màu',
+         skills: {
+            sequences: ['Chuỗi lệnh', 'ra lệnh lần lượt từng bước'],
+            boucles: ['Vòng lặp', 'lặp lại nhiều lần'],
+            conditions: ['Điều kiện', 'nếu… thì… nếu không'],
+            variables: ['Biến', 'nhớ một con số'],
+            fonctions: ['Hàm', 'tự tạo khối lệnh của mình'],
+            listes: ['Danh sách', 'cất nhiều giá trị']
+         },
+         version: 'Mức {n}', ages: ['5 đến 7 tuổi', '8 đến 11 tuổi', '12 đến 15 tuổi'],
+         round: '{year} · Vòng {tour}', number: 'bài {n}', practice: 'Luyện tập', myProblems: 'Bài của tôi',
+         who: 'Ai đang chơi?', newName: 'Tên mới', howOld: 'Bạn bao nhiêu tuổi?', ageOf: 'Tuổi của {name}:',
+         wipe: 'Xóa các ngôi sao của {name}', close: 'Đóng', sounds: 'Âm thanh và rung:', yes: 'Có', no: 'Không', nameFirst: 'Hãy viết tên của bạn trước',
+         parent: 'Dành cho phụ huynh', howMuch: '{a} × {b} bằng bao nhiêu?', notThat: 'Chưa đúng. {a} × {b} bằng bao nhiêu?',
+         ok: 'Đồng ý', cancel: 'Hủy', noTasks: 'Không tìm thấy bài nào. Hãy chạy update.bat để tạo danh sách (tasks.js).',
+         mockTitle: 'Thi thử', mockAbout: 'Giống như ngày thi: tất cả các bài của một vòng, có đồng hồ đếm giờ.',
+         minutes: 'Thời gian (phút):', problems: '{n} bài', timeUp: 'Hết giờ!', roundDone: 'Đã xong vòng thi',
+         total: 'Tổng', toHome: 'Về trang chính', solutionOf: 'Lời giải: {title}',
+         solutionAbout: 'Chương trình này sẽ thay chương trình đang có trên màn hình.',
+         errorsTitle: 'Những lỗi đã gặp', errorsAbout: 'Chụp màn hình này giúp sửa ứng dụng.',
+         language: 'Ngôn ngữ'
+      }
+   });
+   function f(key, args) { return L.fmt(T[key], args || {}); }
+   // the task's title in this language (i18n/tasks-<lang>.js), French when it has none yet
+   var TEXTS = window.ALGOREA_TASK_TEXT || {};
+   TUTORIALS.forEach(function (t) { t.groupName = T.learn; });
+   TASKS.forEach(function (t) {
+      if (TEXTS[t.id] && TEXTS[t.id].title) { t.title = TEXTS[t.id].title; }
+      if (t.group) {
+         t.groupName = t.group === 'Mes problèmes' ? T.myProblems : t.group.replace(/^Préparation/, T.practice);
+      }
+   });
+   Array.prototype.forEach.call(document.querySelectorAll('[data-t]'), function (el) { el.textContent = T[el.dataset.t]; });
+   Array.prototype.forEach.call(document.querySelectorAll('[data-title]'), function (el) { el.title = T[el.dataset.title]; });
+   document.title = T.home;
+   // the words of these two buttons are left out on a phone (see #playbar .word)
+   $('back').innerHTML = '← <span class="word">' + esc(T.back.replace(/^←\s*/, '')) + '</span>';
+   $('solution').innerHTML = '🔑<span class="word"> ' + esc(T.solutionBtn) + '</span>';
+   $('solution').title = T.solutionBtn;
+
+   var COLORS = ['blanche', 'jaune', 'orange', 'vert'];
+   var COLOR_NAMES = T.colors;
+   var SKILLS = ['sequences', 'boucles', 'conditions', 'variables', 'fonctions', 'listes'];
+   var SKILL_NAMES = T.skills;
+   var LEVEL_NAMES = { basic: f('version', { n: 1 }), easy: f('version', { n: 2 }), medium: f('version', { n: 3 }), hard: f('version', { n: 4 }) };
+   // what a new child sees first, by age; the colours can still be changed on the home page
+   var AGES = {
+      petit: { icon: '🐣', name: T.ages[0], colors: ['blanche'], view: 'map', big: true },
+      moyen: { icon: '🦊', name: T.ages[1], colors: ['blanche', 'jaune'], view: 'map' },
+      grand: { icon: '🚀', name: T.ages[2], colors: [], view: 'tour' }
+   };
+   // the three languages; a change reloads the page so that the problems open in the new one
+   function langButtons() {
+      var row = document.createElement('div');
+      row.className = 'ages';
+      Object.keys(L.LANGS).forEach(function (l) {
+         var b = document.createElement('button');
+         b.innerHTML = '<span>' + L.FLAGS[l] + '</span>' + esc(L.LANGS[l]);
+         if (l === L.lang) { b.className = 'on'; }
+         b.onclick = function () {
+            if (l === L.lang) { closeDialog(); return; }
+            L.set(l);
+            location.reload();
+         };
+         row.appendChild(b);
+      });
+      return row;
+   }
+   function chooseLanguage() {
+      var box = dialog('<h3>🌐 ' + esc(T.language) + '</h3><div id="langs"></div><div class="row"><button id="close">' + esc(T.close) + '</button></div>');
+      box.querySelector('#langs').appendChild(langButtons());
+      box.querySelector('#close').onclick = closeDialog;
+   }
+   function ageButtons(chosen, then) {
+      var row = document.createElement('div');
+      row.className = 'ages';
+      Object.keys(AGES).forEach(function (age) {
+         var b = document.createElement('button');
+         b.innerHTML = '<span>' + AGES[age].icon + '</span>' + esc(AGES[age].name);
+         if (age === chosen) { b.className = 'on'; }
+         b.onclick = function () { then(age); };
+         row.appendChild(b);
+      });
+      return row;
+   }
+   var MAX_FRAMES = 8;
+
+   function $(id) { return document.getElementById(id); }
+   function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+   function colorOf(t) { return t.color || 'autre'; }
+   function roundName(t) { return t.year ? f('round', { year: t.year, tour: t.tour }) : (t.groupName || t.group); }
+   function where(t) { return roundName(t) + ' · ' + f('number', { n: t.number }); }
+
+   /* ---------- saved data: one entry per child, kept in this browser ---------- */
+   var KEY = 'algoreaTrainer.v1';
+   var store = { current: null, profiles: {} };
+   try { store = JSON.parse(localStorage.getItem(KEY)) || store; } catch (e) { /* first visit or storage off */ }
+   function save() { try { localStorage.setItem(KEY, JSON.stringify(store)); } catch (e) { /* storage full or off */ } }
+   function me() {
+      var p = store.profiles[store.current];
+      if (!p) { return { stars: {}, answers: {}, view: 'tour', colors: [] }; }
+      p.stars = p.stars || {}; p.answers = p.answers || {}; p.view = p.view || 'tour'; p.colors = p.colors || [];
+      return p;
+   }
+   function soundsOn() { var p = me(); return p.sounds !== undefined ? !!p.sounds : p.age !== 'grand'; }
+   function isYoung() { var a = me().age; return a === 'petit' || a === 'moyen'; }
+   function starsOf(id) { return me().stars[id] || 0; }
+   function starsHtml(got, total) {
+      var s = '';
+      for (var i = 0; i < total; i++) { s += i < got ? '<b>★</b>' : '★'; }
+      return s;
+   }
+   // a version is solved when the score reaches the points of that version
+   function countStars(task, score, maxScores) {
+      var n = 0;
+      task.levels.forEach(function (level) { if (maxScores && score >= maxScores[level]) { n++; } });
+      return n;
+   }
+
+   /* ---------- dialog ---------- */
+   function dialog(html) { Rea.hide(); $('box').innerHTML = html; $('veil').hidden = false; return $('box'); }
+   function closeDialog() { $('veil').hidden = true; $('box').innerHTML = ''; }
+
+   function chooseProfile() {
+      var names = Object.keys(store.profiles);
+      var box = dialog('<div id="langs"></div><h3>' + esc(T.who) + '</h3><div class="row" id="names"></div>' +
+         '<div class="row"><input type="text" id="newname" maxlength="20" placeholder="' + esc(T.newName) + '"></div>' +
+         '<p class="note">' + esc(T.howOld) + '</p><div id="newage"></div>' +
+         (store.current ? '<p class="note">' + esc(f('ageOf', { name: store.current })) + '</p><div id="myage"></div>' +
+            '<p class="note">' + esc(T.sounds) + '</p><div class="row" id="sounds"></div>' +
+            '<div class="row"><button id="wipe">' + esc(f('wipe', { name: store.current })) + '</button>' +
+            '<button id="close">' + esc(T.close) + '</button></div>' : ''));
+      // the very first time, the language comes first
+      if (!names.length) { box.querySelector('#langs').appendChild(langButtons()); }
+      names.forEach(function (name) {
+         var b = document.createElement('button');
+         b.textContent = name;
+         if (name === store.current) { b.className = 'on'; }
+         b.onclick = function () { store.current = name; save(); closeDialog(); render(); };
+         box.querySelector('#names').appendChild(b);
+      });
+      // a new child: the name, then the age (a tap on the age adds the child)
+      box.querySelector('#newage').appendChild(ageButtons(null, function (age) {
+         var input = box.querySelector('#newname'), name = input.value.trim();
+         if (!name) { input.focus(); input.placeholder = T.nameFirst; return; }
+         if (!store.profiles[name]) {
+            store.profiles[name] = { age: age, colors: AGES[age].colors.slice(), view: AGES[age].view };
+         }
+         store.current = name; save(); closeDialog(); render();
+      }));
+      if (store.current) {
+         box.querySelector('#myage').appendChild(ageButtons(me().age, function (age) {
+            var p = me();
+            p.age = age; p.colors = AGES[age].colors.slice(); p.view = AGES[age].view;
+            save(); closeDialog(); render();
+         }));
+         [true, false].forEach(function (on) {
+            var b = document.createElement('button');
+            b.textContent = (on ? '🔊 ' : '🔇 ') + (on ? T.yes : T.no);
+            if (soundsOn() === on) { b.className = 'on'; }
+            b.onclick = function () { me().sounds = on; Rea.sounds = on; save(); closeDialog(); };
+            box.querySelector('#sounds').appendChild(b);
+         });
+         box.querySelector('#close').onclick = closeDialog;
+         box.querySelector('#wipe').onclick = function () {
+            askParent(function () { store.profiles[store.current] = {}; save(); closeDialog(); render(); });
+         };
+      }
+   }
+
+   // a small sum keeps a young child from opening solutions or erasing stars by accident
+   function askParent(then) {
+      var a = 6 + Math.floor(Math.random() * 4), b = 6 + Math.floor(Math.random() * 4);
+      var box = dialog('<h3>' + esc(T.parent) + '</h3><p>' + esc(f('howMuch', { a: a, b: b })) + '</p>' +
+         '<div class="row"><input type="number" id="sum"><button id="ok" class="main">' + esc(T.ok) + '</button>' +
+         '<button id="no">' + esc(T.cancel) + '</button></div>');
+      box.querySelector('#no').onclick = closeDialog;
+      box.querySelector('#ok').onclick = function () {
+         if (Number(box.querySelector('#sum').value) === a * b) { closeDialog(); then(); }
+         else { box.querySelector('p').textContent = f('notThat', { a: a, b: b }); }
+      };
+   }
+
+   /* ---------- today's mission and the streak (saved in the profile: daily, days, best) ---------- */
+   var Q = L.pick({
+      fr: { title: '🎯 Mission du jour', done: 'Mission accomplie ! Reviens demain pour la suivante.', streak: '🔥 {n} jour(s) de suite', best: 'record : {n}',
+            newGoal: 'Réussis un nouveau problème', starGoal: 'Gagne une étoile de plus sur « {title} »', skillGoal: 'Gagne une étoile dans « {skill} »',
+            play: '▶ Jouer', cheer: 'Mission du jour accomplie ! 🔥 {n} jour(s) de suite, bravo {name} !', freeze: 'Un jour manqué par semaine ne casse pas ta série.' },
+      en: { title: '🎯 Today\'s mission', done: 'Mission accomplished! Come back tomorrow for the next one.', streak: '🔥 {n} day(s) in a row', best: 'best: {n}',
+            newGoal: 'Solve a new problem', starGoal: 'Win one more star on "{title}"', skillGoal: 'Win a star in "{skill}"',
+            play: '▶ Play', cheer: 'Today\'s mission accomplished! 🔥 {n} day(s) in a row, well done {name}!', freeze: 'Missing one day a week does not break your streak.' },
+      vi: { title: '🎯 Nhiệm vụ hôm nay', done: 'Hoàn thành nhiệm vụ! Mai quay lại để nhận nhiệm vụ mới nhé.', streak: '🔥 {n} ngày liên tiếp', best: 'kỷ lục: {n}',
+            newGoal: 'Giải một bài mới', starGoal: 'Giành thêm một sao ở bài "{title}"', skillGoal: 'Giành một sao trong phần "{skill}"',
+            play: '▶ Chơi', cheer: 'Hoàn thành nhiệm vụ hôm nay! 🔥 {n} ngày liên tiếp, giỏi lắm {name}!', freeze: 'Bỏ lỡ một ngày mỗi tuần không làm mất chuỗi ngày của bạn.' }
+   });
+   function dayKey(d) { d = d || new Date(); return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); }
+   function pickOne(list) { return list[Math.floor(Math.random() * list.length)]; }
+   // what the child can play now: the problems shown on the home page, and "Learn to play" for the youngest
+   function playable() { return TASKS.filter(visible).concat(isYoung() ? TUTORIALS : []); }
+   function goalSize() { return me().goalSize || { petit: 1, moyen: 2, grand: 3 }[me().age] || 2; }
+   function newMission() {
+      var size = goalSize(), pool = playable(), goals = [];
+      var fresh = pool.filter(function (t) { return !starsOf(t.id); }).sort(order);
+      var started = pool.filter(function (t) { var n = starsOf(t.id); return n > 0 && n < t.levels.length; });
+      // a new problem among the easiest ones not tried yet, a star more on one already started, a skill
+      if (fresh.length) { goals.push({ kind: 'new', id: pickOne(fresh.slice(0, 5)).id }); }
+      if (goals.length < size && started.length) { goals.push({ kind: 'star', id: pickOne(started).id }); }
+      if (goals.length < size) {
+         var skills = SKILLS.filter(function (k) { return pool.some(function (t) { return t.skill === k && starsOf(t.id) < t.levels.length; }); });
+         if (skills.length) { goals.push({ kind: 'skill', skill: pickOne(skills) }); }
+      }
+      if (goals.length < size && fresh.length > 1) { goals.push({ kind: 'new', id: fresh[Math.min(5, fresh.length - 1)].id }); }
+      return { date: dayKey(), goals: goals.slice(0, size) };
+   }
+   function mission() {
+      if (!store.profiles[store.current]) { return null; }
+      var p = me();
+      if (!p.daily || p.daily.date !== dayKey()) { p.daily = newMission(); save(); }
+      return p.daily;
+   }
+   // days in a row, today included when its mission is done; one missed day per week is forgiven
+   function streak() {
+      var days = me().days || {}, n = 0, d = new Date(), forgiven = {};
+      if (!days[dayKey(d)]) { d.setDate(d.getDate() - 1); }
+      for (var i = 0; i < 400; i++) {
+         if (days[dayKey(d)]) { n++; }
+         else {
+            var week = dayKey(new Date(d.getFullYear(), d.getMonth(), d.getDate() - ((d.getDay() + 6) % 7)));
+            var before = new Date(d); before.setDate(before.getDate() - 1);
+            if (forgiven[week] || !days[dayKey(before)] || !n) { break; }
+            forgiven[week] = true;
+         }
+         d.setDate(d.getDate() - 1);
+      }
+      return n;
+   }
+   // a new star was won on task t (from 'had' to 'got' stars): does it complete a goal?
+   function questProgress(t, had, got) {
+      var m = mission();
+      if (!m || got <= had) { return; }
+      var changed = false;
+      m.goals.forEach(function (g) {
+         if (g.done) { return; }
+         if ((g.kind === 'new' && !had) || (g.kind === 'star' && had > 0) || (g.kind === 'skill' && t.skill === g.skill) || g.id === t.id) {
+            g.done = true; changed = true;
+         }
+      });
+      if (changed && !m.done && m.goals.every(function (g) { return g.done; })) {
+         m.done = true;
+         var days = me().days = me().days || {};
+         days[dayKey()] = true;
+         me().best = Math.max(me().best || 0, streak());
+         setTimeout(function () {
+            Rea.sound('unlock'); Rea.confetti();
+            reaSay(L.fmt(Q.cheer, { n: streak(), name: esc(store.current) }), 'happy', 8000);
+         }, 2600);
+      }
+      save();
+   }
+   function goalText(g) {
+      if (g.kind === 'star' && BY_ID[g.id]) { return L.fmt(Q.starGoal, { title: BY_ID[g.id].title }); }
+      if (g.kind === 'skill') { return L.fmt(Q.skillGoal, { skill: SKILL_NAMES[g.skill][0] }); }
+      return Q.newGoal + (g.id && BY_ID[g.id] ? (L.lang === 'fr' ? ' : ' : ': ') + BY_ID[g.id].title : '');
+   }
+   function renderMission() {
+      var m = mission();
+      if (!m || !m.goals.length) { return; }
+      var box = document.createElement('div');
+      box.className = 'mission';
+      var days = me().days || {}, week = '', today = new Date(), monday = new Date(today);
+      monday.setDate(today.getDate() - ((today.getDay() + 6) % 7));
+      for (var i = 0; i < 7; i++) {
+         var d = new Date(monday); d.setDate(monday.getDate() + i);
+         var name = d.toLocaleDateString(L.lang, { weekday: 'short' });
+         week += '<span class="day' + (days[dayKey(d)] ? ' fire' : '') + (dayKey(d) === dayKey() ? ' today' : '') + '"><b>' +
+            (days[dayKey(d)] ? '🔥' : '·') + '</b>' + esc(name) + '</span>';
+      }
+      box.innerHTML = '<div class="mhead"><h2>' + esc(Q.title) + '</h2><span class="streak">' + esc(L.fmt(Q.streak, { n: streak() })) +
+         (me().best ? ' <small>' + esc(L.fmt(Q.best, { n: me().best })) + '</small>' : '') + '</span></div>' +
+         '<div class="week" title="' + esc(Q.freeze) + '">' + week + '</div><ul></ul>' + (m.done ? '<p class="mdone">' + esc(Q.done) + '</p>' : '');
+      m.goals.forEach(function (g) {
+         var li = document.createElement('li');
+         li.className = g.done ? 'done' : '';
+         li.innerHTML = '<span class="tick">' + (g.done ? '✔' : '○') + '</span><span class="gtext">' + esc(goalText(g)) + '</span>';
+         var target = g.id && BY_ID[g.id] ? g.id : null;
+         if (!target && g.kind === 'skill') {
+            var cand = playable().filter(function (t) { return t.skill === g.skill && starsOf(t.id) < t.levels.length; }).sort(order)[0];
+            target = cand && cand.id;
+         }
+         if (!g.done && target) {
+            var b = document.createElement('button');
+            b.className = 'main'; b.textContent = Q.play;
+            b.onclick = function () { play([target], target, null); };
+            li.appendChild(b);
+         }
+         box.querySelector('ul').appendChild(li);
+      });
+      $('list').appendChild(box);
+   }
+
+   /* ---------- rewards: stickers (one per world), badges (per skill), Réa's outfits (by stars) ----------
+      Saved in the profile: stickers {world: true}, wear [outfits worn], got {reward key: true} (already celebrated). */
+   var R = L.pick({
+      fr: { shelf: '🏆 Trophées', shelfTitle: 'Les trophées de {name}', outfits: 'Les tenues de Réa', outfitsAbout: 'Touche une tenue gagnée pour l\'essayer.',
+            badges: 'Les badges', badgesAbout: '🥉 3 étoiles, 🥈 10 étoiles, 🥇 toutes les étoiles du thème.', stickers: 'Les autocollants',
+            stickersAbout: 'Un autocollant par monde : réussis un problème de ce monde.', locked: '{n} ★', newOne: 'Nouveau !', wear: 'Mettre à Réa', great: 'Super !',
+            stars: '{n} étoile(s) en tout', outfitWon: 'Réa a une nouvelle tenue : {name} !', badgeWon: 'Nouveau badge : {name} !', stickerWon: 'Nouvel autocollant : {name} !' },
+      en: { shelf: '🏆 Trophies', shelfTitle: '{name}\'s trophies', outfits: 'Réa\'s outfits', outfitsAbout: 'Tap an outfit you won to try it on.',
+            badges: 'Badges', badgesAbout: '🥉 3 stars, 🥈 10 stars, 🥇 every star of the topic.', stickers: 'Stickers',
+            stickersAbout: 'One sticker per world: solve a problem in that world.', locked: '{n} ★', newOne: 'New!', wear: 'Put it on Réa', great: 'Great!',
+            stars: '{n} star(s) in all', outfitWon: 'Réa has a new outfit: {name}!', badgeWon: 'New badge: {name}!', stickerWon: 'New sticker: {name}!' },
+      vi: { shelf: '🏆 Cúp', shelfTitle: 'Tủ cúp của {name}', outfits: 'Trang phục của Réa', outfitsAbout: 'Chạm vào trang phục đã giành được để mặc thử.',
+            badges: 'Huy hiệu', badgesAbout: '🥉 3 sao, 🥈 10 sao, 🥇 tất cả sao của chủ đề.', stickers: 'Hình dán',
+            stickersAbout: 'Mỗi thế giới một hình dán: giải một bài trong thế giới đó.', locked: '{n} ★', newOne: 'Mới!', wear: 'Mặc cho Réa', great: 'Tuyệt!',
+            stars: 'Tổng cộng {n} sao', outfitWon: 'Réa có trang phục mới: {name}!', badgeWon: 'Huy hiệu mới: {name}!', stickerWon: 'Hình dán mới: {name}!' }
+   });
+   // the outfits, in the order they are won (total stars needed)
+   var OUTFIT_LIST = [
+      { key: 'hat', stars: 5, name: { fr: 'le chapeau de fête', en: 'the party hat', vi: 'mũ dự tiệc' } },
+      { key: 'glasses', stars: 15, name: { fr: 'les lunettes', en: 'the glasses', vi: 'cặp kính' } },
+      { key: 'bow', stars: 30, name: { fr: 'le nœud papillon', en: 'the bow tie', vi: 'nơ con bướm' } },
+      { key: 'cape', stars: 50, name: { fr: 'la cape de héros', en: 'the hero cape', vi: 'áo choàng anh hùng' } },
+      { key: 'crown', stars: 80, name: { fr: 'la couronne', en: 'the crown', vi: 'vương miện' } },
+      { key: 'gold', stars: 120, name: { fr: 'Réa en or', en: 'golden Réa', vi: 'Réa bằng vàng' } }
+   ];
+   var STICKERS = {
+      course: ['🚩', { fr: 'Le chemin', en: 'The path', vi: 'Con đường' }], marbles: ['🔮', { fr: 'Les billes', en: 'Marbles', vi: 'Bi' }],
+      paint: ['🎨', { fr: 'La peinture', en: 'Painting', vi: 'Tô màu' }], fishing: ['🐟', { fr: 'La pêche', en: 'Fishing', vi: 'Câu cá' }],
+      sokoban: ['📦', { fr: 'Les caisses', en: 'Boxes', vi: 'Thùng' }], flowers: ['🌸', { fr: 'Les fleurs', en: 'Flowers', vi: 'Hoa' }],
+      gems: ['💎', { fr: 'Les pierres précieuses', en: 'Gems', vi: 'Đá quý' }], rocket: ['🚀', { fr: 'La fusée', en: 'The rocket', vi: 'Tên lửa' }],
+      veterinary: ['🐶', { fr: 'Le vétérinaire', en: 'The vet', vi: 'Bác sĩ thú y' }], packages: ['🎁', { fr: 'Les colis', en: 'Parcels', vi: 'Bưu kiện' }],
+      gears: ['⚙️', { fr: 'Les engrenages', en: 'Gears', vi: 'Bánh răng' }], dominoes: ['🁫', { fr: 'Les dominos', en: 'Dominoes', vi: 'Đô-mi-nô' }],
+      biscuits: ['🍪', { fr: 'Les biscuits', en: 'Biscuits', vi: 'Bánh quy' }], pearls: ['🦪', { fr: 'Les perles', en: 'Pearls', vi: 'Ngọc trai' }],
+      poker: ['🃏', { fr: 'Les cartes', en: 'Cards', vi: 'Bài' }]
+   };
+   var BADGE_STEPS = [['bronze', '🥉', 3], ['silver', '🥈', 10], ['gold', '🥇', 0]];   // 0 = every star of the skill
+   var worldOf = {};   // task id -> its world, told by the page when it is ready
+   function totalStars() { return TASKS.reduce(function (n, t) { return n + starsOf(t.id); }, 0); }
+   function skillStars(s) {
+      var got = 0, all = 0;
+      TASKS.forEach(function (t) { if (t.skill === s) { got += starsOf(t.id); all += t.levels.length; } });
+      return { got: got, all: all };
+   }
+   // every reward won now, as keys: outfit:hat, badge:boucles:silver, sticker:course
+   function rewardsWon() {
+      var won = {}, total = totalStars(), p = me();
+      OUTFIT_LIST.forEach(function (o) { if (total >= o.stars) { won['outfit:' + o.key] = true; } });
+      SKILLS.forEach(function (s) {
+         var k = skillStars(s);
+         BADGE_STEPS.forEach(function (b) { if (k.all && k.got >= (b[2] || k.all)) { won['badge:' + s + ':' + b[0]] = true; } });
+      });
+      Object.keys(p.stickers || {}).forEach(function (w) { if (STICKERS[w]) { won['sticker:' + w] = true; } });
+      return won;
+   }
+   function rewardInfo(key) {
+      var part = key.split(':');
+      if (part[0] === 'outfit') {
+         var o = OUTFIT_LIST.filter(function (x) { return x.key === part[1]; })[0];
+         return { pic: Rea.face(96, [o.key]), text: L.fmt(R.outfitWon, { name: L.pick(o.name) }), outfit: o.key };
+      }
+      if (part[0] === 'badge') {
+         var b = BADGE_STEPS.filter(function (x) { return x[0] === part[2]; })[0];
+         return { pic: '<span class="bigpic">' + b[1] + '</span>', text: L.fmt(R.badgeWon, { name: SKILL_NAMES[part[1]][0] }) };
+      }
+      return { pic: '<span class="bigpic">' + STICKERS[part[1]][0] + '</span>', text: L.fmt(R.stickerWon, { name: L.pick(STICKERS[part[1]][1]) }) };
+   }
+   // the outfits Réa wears: chosen on the shelf, else every one won (a crown replaces the hat)
+   function wearing() {
+      if (!store.profiles[store.current]) { return []; }
+      var won = rewardsWon(), list = me().wear || OUTFIT_LIST.map(function (o) { return o.key; });
+      list = list.filter(function (k) { return won['outfit:' + k]; });
+      if (list.indexOf('crown') >= 0) { list = list.filter(function (k) { return k !== 'hat'; }); }
+      return list;
+   }
+   // after a win: celebrate what is new, one card after the other; the first look at an old profile celebrates nothing
+   var celebrating = [];
+   function checkRewards(quiet) {
+      if (!store.profiles[store.current]) { return; }
+      var p = me(), won = rewardsWon(), fresh = Object.keys(won).filter(function (k) { return !(p.got || {})[k]; });
+      if (!p.got) { p.got = {}; quiet = true; }
+      fresh.forEach(function (k) { p.got[k] = true; });
+      save();
+      if (quiet || !fresh.length) { return; }
+      var rank = { outfit: 0, badge: 1, sticker: 2 };
+      fresh.sort(function (a, b) { return rank[a.split(':')[0]] - rank[b.split(':')[0]]; });
+      celebrating = celebrating.concat(fresh);
+      setTimeout(nextCelebration, 5500);
+   }
+   function nextCelebration() {
+      if (!celebrating.length || !$('veil').hidden) { return; }
+      var key = celebrating.shift(), info = rewardInfo(key);
+      Rea.sound('unlock'); Rea.buzz(80); Rea.confetti();
+      var box = dialog('<div class="unlock"><p class="new">' + esc(R.newOne) + '</p>' + info.pic + '<h3>' + esc(info.text) + '</h3></div>' +
+         '<div class="row">' + (info.outfit ? '<button id="wear">' + esc(R.wear) + '</button>' : '') +
+         '<button id="close" class="main">' + esc(R.great) + '</button></div>');
+      aloud(info.text);
+      var done = function () { closeDialog(); setTimeout(nextCelebration, 400); };
+      box.querySelector('#close').onclick = done;
+      if (info.outfit) {
+         box.querySelector('#wear').onclick = function () {
+            var w = wearing(); if (w.indexOf(info.outfit) < 0) { w.push(info.outfit); }
+            if (info.outfit === 'crown') { w = w.filter(function (k) { return k !== 'hat'; }); }
+            if (info.outfit === 'hat') { w = w.filter(function (k) { return k !== 'crown'; }); }
+            me().wear = w; Rea.outfit = wearing(); save(); done();
+         };
+      }
+   }
+   function showShelf() {
+      var p = me(), won = rewardsWon(), total = totalStars(), w = wearing();
+      var html = '<div class="shelf"><div class="shelfhead">' + Rea.face(110, w) + '<div><h3>' + esc(L.fmt(R.shelfTitle, { name: store.current })) +
+         '</h3><p>' + esc(L.fmt(R.stars, { n: total })) + '</p></div></div>' +
+         '<h4>' + esc(R.outfits) + '</h4><p class="note">' + esc(R.outfitsAbout) + '</p><div class="items" id="outfits"></div>' +
+         '<h4>' + esc(R.badges) + '</h4><p class="note">' + esc(R.badgesAbout) + '</p><div class="items badges">';
+      SKILLS.forEach(function (s) {
+         var k = skillStars(s); if (!k.all) { return; }
+         html += '<div class="item"><span class="pic">' + BADGE_STEPS.map(function (b) {
+            return '<i class="' + (won['badge:' + s + ':' + b[0]] ? '' : 'off') + '">' + b[1] + '</i>';
+         }).join('') + '</span><b>' + esc(SKILL_NAMES[s][0]) + '</b><small>' + k.got + ' / ' + k.all + ' ★</small></div>';
+      });
+      html += '</div><h4>' + esc(R.stickers) + '</h4><p class="note">' + esc(R.stickersAbout) + '</p><div class="items">';
+      Object.keys(STICKERS).forEach(function (wd) {
+         var on = won['sticker:' + wd];
+         html += '<div class="item' + (on ? '' : ' locked') + '"><span class="pic">' + (on ? STICKERS[wd][0] : '❔') + '</span><b>' +
+            esc(on ? L.pick(STICKERS[wd][1]) : '?') + '</b></div>';
+      });
+      html += '</div></div><div class="row"><button id="close" class="main">' + esc(T.close) + '</button></div>';
+      var box = dialog(html);
+      OUTFIT_LIST.forEach(function (o) {
+         var b = document.createElement('button'), on = won['outfit:' + o.key];
+         b.className = 'item' + (on ? '' : ' locked') + (w.indexOf(o.key) >= 0 ? ' worn' : '');
+         b.innerHTML = '<span class="pic">' + (on ? Rea.face(54, [o.key]) : '🔒') + '</span><b>' + esc(on ? L.pick(o.name) : L.fmt(R.locked, { n: o.stars })) + '</b>';
+         b.disabled = !on;
+         b.onclick = function () {
+            var list = wearing(), i = list.indexOf(o.key);
+            if (i >= 0) { list.splice(i, 1); } else {
+               list.push(o.key);
+               if (o.key === 'crown') { list = list.filter(function (k) { return k !== 'hat'; }); }
+               if (o.key === 'hat') { list = list.filter(function (k) { return k !== 'crown'; }); }
+            }
+            me().wear = list; Rea.outfit = wearing(); save(); Rea.sound('snap'); showShelf();
+         };
+         box.querySelector('#outfits').appendChild(b);
+      });
+      box.querySelector('#close').onclick = function () { closeDialog(); render(); };
+   }
+
+   /* ---------- the adventure map (view 'map'): one island per colour, a winding path of problems ---------- */
+   var M = L.pick({
+      fr: { map: '🗺️ Carte', islands: { blanche: '🏝️ L\'île blanche', jaune: '🌻 L\'île jaune', orange: '🍊 L\'île orange', vert: '🌳 L\'île verte', autre: '⛰️ L\'île mystère' },
+            here: 'Tu es ici' },
+      en: { map: '🗺️ Map', islands: { blanche: '🏝️ White island', jaune: '🌻 Yellow island', orange: '🍊 Orange island', vert: '🌳 Green island', autre: '⛰️ Mystery island' },
+            here: 'You are here' },
+      vi: { map: '🗺️ Bản đồ', islands: { blanche: '🏝️ Đảo trắng', jaune: '🌻 Đảo vàng', orange: '🍊 Đảo cam', vert: '🌳 Đảo xanh', autre: '⛰️ Đảo bí ẩn' },
+            here: 'Bạn đang ở đây' }
+   });
+   function renderMap(shown) {
+      var STEP = 92;
+      COLORS.concat(['autre']).forEach(function (c) {
+         var tasks = shown.filter(function (t) { return colorOf(t) === c; }).sort(order);
+         if (!tasks.length) { return; }
+         var ids = tasks.map(function (t) { return t.id; }), got = 0, all = 0;
+         tasks.forEach(function (t) { got += starsOf(t.id); all += t.levels.length; });
+         var island = document.createElement('div');
+         island.className = 'island';
+         island.style.setProperty('--c', c === 'blanche' ? '#7cc3ee' : 'var(--' + c + ')');   // white would look switched off
+         island.innerHTML = '<h2>' + esc(M.islands[c]) + '<small>' + got + ' / ' + all + ' ★</small></h2>';
+         var path = document.createElement('div');
+         path.className = 'path';
+         path.style.height = (tasks.length * STEP + 20) + 'px';
+         var points = [], here = -1;
+         tasks.forEach(function (t, i) {
+            var x = 50 + 32 * Math.sin(i * 1.1), y = 40 + i * STEP, n = starsOf(t.id);
+            points.push(x + ',' + y);
+            if (here < 0 && n < t.levels.length) { here = i; }
+            var b = document.createElement('button');
+            b.className = 'node' + (n >= t.levels.length ? ' done' : n ? ' started' : '');
+            b.style.left = x + '%'; b.style.top = y + 'px';
+            b.title = t.title;
+            b.innerHTML = '<span class="num">' + (n >= t.levels.length ? '✓' : i + 1) + '</span>' +
+               '<span class="nstars">' + starsHtml(n, t.levels.length) + '</span><span class="ntitle">' + esc(t.title) + '</span>';
+            b.onclick = function () { play(ids, t.id, null); };
+            path.appendChild(b);
+         });
+         path.insertAdjacentHTML('afterbegin', '<svg class="road" viewBox="0 0 100 ' + (tasks.length * STEP + 20) + '" preserveAspectRatio="none">' +
+            '<polyline points="' + points.join(' ') + '" vector-effect="non-scaling-stroke"/></svg>');
+         if (here >= 0) {
+            var me_ = document.createElement('div');
+            me_.className = 'here';
+            me_.style.left = 'calc(' + (50 + 32 * Math.sin(here * 1.1)) + '% ' + (Math.sin(here * 1.1) > 0 ? '- 82px' : '+ 40px') + ')';
+            me_.style.top = (40 + here * STEP - 30) + 'px';
+            me_.innerHTML = Rea.face(42, Rea.outfit) + '<small>' + esc(M.here) + '</small>';
+            path.appendChild(me_);
+         }
+         island.appendChild(path);
+         $('list').appendChild(island);
+      });
+   }
+
+   /* ---------- the parent page: the week, hints, streak, and two settings (goal size, time limit) ---------- */
+   var P = L.pick({
+      fr: { link: '👪 Espace parents', title: 'Espace parents : {name}', week: 'Cette semaine (minutes de jeu)', stars: 'Étoiles', solved: 'Problèmes réussis',
+            hints: 'Indices utilisés', streak: 'Série de jours', best: 'Record', goal: 'Mission du jour : nombre d\'objectifs', limit: 'Temps de jeu par jour',
+            limitAbout: 'Quand le temps est passé, Réa propose une pause (le jeu reste ouvert).', off: 'Sans limite', min: '{n} min', today: 'Aujourd\'hui : {n} min' },
+      en: { link: '👪 For parents', title: 'For parents: {name}', week: 'This week (minutes played)', stars: 'Stars', solved: 'Problems solved',
+            hints: 'Hints used', streak: 'Days in a row', best: 'Best', goal: 'Today\'s mission: number of goals', limit: 'Play time per day',
+            limitAbout: 'When the time is up, Réa suggests a break (the game stays open).', off: 'No limit', min: '{n} min', today: 'Today: {n} min' },
+      vi: { link: '👪 Dành cho phụ huynh', title: 'Phụ huynh: {name}', week: 'Tuần này (số phút chơi)', stars: 'Sao', solved: 'Bài đã giải',
+            hints: 'Gợi ý đã dùng', streak: 'Ngày liên tiếp', best: 'Kỷ lục', goal: 'Nhiệm vụ hôm nay: số mục tiêu', limit: 'Thời gian chơi mỗi ngày',
+            limitAbout: 'Khi hết giờ, Réa gợi ý nghỉ ngơi (trò chơi vẫn mở).', off: 'Không giới hạn', min: '{n} phút', today: 'Hôm nay: {n} phút' }
+   });
+   // play time: counted every 30 s while a problem is open and the page is seen
+   var restSaid = {};
+   setInterval(function () {
+      if (!playing || playing.mock || document.hidden || !store.profiles[store.current]) { return; }
+      var p = me(), day = dayKey();
+      p.time = p.time || {};
+      p.time[day] = (p.time[day] || 0) + 30;
+      Object.keys(p.time).forEach(function (d) { if (d < dayKey(new Date(Date.now() - 40 * 86400000))) { delete p.time[d]; } });
+      save();
+      if (p.limit && p.time[day] >= p.limit * 60 && !restSaid[day]) {
+         restSaid[day] = true;
+         Rea.sound('unlock');
+         reaSay(Rea.line('rest', { name: esc(store.current) }), 'calm', 12000);
+      }
+   }, 30000);
+   function showParents() {
+      var p = me(), days = '', max = 1, today = new Date(), monday = new Date(today), time = p.time || {};
+      monday.setDate(today.getDate() - ((today.getDay() + 6) % 7));
+      var week = [];
+      for (var i = 0; i < 7; i++) { var d = new Date(monday); d.setDate(monday.getDate() + i); week.push(d); max = Math.max(max, Math.round((time[dayKey(d)] || 0) / 60)); }
+      week.forEach(function (d) {
+         var m = Math.round((time[dayKey(d)] || 0) / 60);
+         days += '<div class="pday' + ((p.days || {})[dayKey(d)] ? ' fire' : '') + '"><div class="pbar"><i style="height:' + (100 * m / max) + '%"></i></div><b>' + m + '</b>' +
+            esc(d.toLocaleDateString(L.lang, { weekday: 'short' })) + '</div>';
+      });
+      var solved = TASKS.filter(function (t) { return starsOf(t.id) > 0; }).length;
+      var hints = Object.keys(p.hints || {}).reduce(function (n, k) { return n + p.hints[k]; }, 0);
+      var box = dialog('<div class="parents"><h3>' + esc(L.fmt(P.title, { name: store.current })) + '</h3>' +
+         '<div class="pstats"><div><b>' + totalStars() + '</b>' + esc(P.stars) + '</div><div><b>' + solved + '</b>' + esc(P.solved) + '</div>' +
+         '<div><b>' + hints + '</b>' + esc(P.hints) + '</div><div><b>' + streak() + '</b>' + esc(P.streak) + '</div><div><b>' + (p.best || 0) + '</b>' + esc(P.best) + '</div></div>' +
+         '<h4>' + esc(P.week) + '</h4><div class="pweek">' + days + '</div>' +
+         '<h4>' + esc(P.goal) + '</h4><div class="row" id="goal"></div>' +
+         '<h4>' + esc(P.limit) + '</h4><p class="note">' + esc(P.limitAbout) + ' ' + esc(L.fmt(P.today, { n: Math.round((time[dayKey()] || 0) / 60) })) + '</p><div class="row" id="limit"></div></div>' +
+         '<div class="row"><button id="close" class="main">' + esc(T.close) + '</button></div>');
+      [1, 2, 3].forEach(function (n) {
+         var b = document.createElement('button');
+         b.textContent = n; b.className = goalSize() === n ? 'on' : '';
+         b.onclick = function () {
+            p.goalSize = n;
+            // today's mission is made again if nothing of it is done yet
+            if (p.daily && !p.daily.goals.some(function (g) { return g.done; })) { delete p.daily; }
+            save(); showParents();
+         };
+         box.querySelector('#goal').appendChild(b);
+      });
+      [0, 15, 30, 45, 60].forEach(function (n) {
+         var b = document.createElement('button');
+         b.textContent = n ? L.fmt(P.min, { n: n }) : P.off; b.className = (p.limit || 0) === n ? 'on' : '';
+         b.onclick = function () { p.limit = n; save(); showParents(); };
+         box.querySelector('#limit').appendChild(b);
+      });
+      box.querySelector('#close').onclick = function () { closeDialog(); render(); };
+   }
+
+   /* ---------- home ---------- */
+   function visible(t) { var c = me().colors; return !c.length || c.indexOf(colorOf(t)) >= 0; }
+   function order(a, b) {
+      return (COLORS.indexOf(colorOf(a)) - COLORS.indexOf(colorOf(b))) ||
+         ((a.year || 0) - (b.year || 0)) || ((a.tour || 0) - (b.tour || 0)) || (a.number - b.number);
+   }
+
+   function card(t, listIds) {
+      var got = starsOf(t.id);
+      var b = document.createElement('button');
+      b.className = 'card' + (got >= t.levels.length ? ' done' : '');
+      b.style.setProperty('--c', 'var(--' + colorOf(t) + ')');
+      b.innerHTML = '<strong>' + esc(t.title) + '</strong><em>' + esc(where(t)) + '</em>' +
+         '<span class="stars">' + starsHtml(got, t.levels.length) + '</span>';
+      b.onclick = function () { play(listIds, t.id, null); };
+      return b;
+   }
+
+   function section(title, sub, tasks) {
+      if (!tasks.length) { return; }
+      var ids = tasks.map(function (t) { return t.id; });
+      var h = document.createElement('h2');
+      h.innerHTML = esc(title) + (sub ? '<small>' + esc(sub) + '</small>' : '');
+      var grid = document.createElement('div');
+      grid.className = 'cards';
+      tasks.forEach(function (t) { grid.appendChild(card(t, ids)); });
+      $('list').appendChild(h);
+      $('list').appendChild(grid);
+   }
+
+   function rounds() {
+      var seen = {}, out = [];
+      TASKS.forEach(function (t) {
+         var key = t.year ? t.year + '|' + t.tour + '|' + t.color : 'g|' + t.group + '|' + colorOf(t);
+         if (!seen[key]) { seen[key] = { key: key, tasks: [], sample: t }; out.push(seen[key]); }
+         seen[key].tasks.push(t);
+      });
+      return out;
+   }
+
+   function renderProgress() {
+      var html = '';
+      COLORS.concat(['autre']).forEach(function (c) {
+         var got = 0, total = 0;
+         TASKS.forEach(function (t) { if (colorOf(t) === c) { got += starsOf(t.id); total += t.levels.length; } });
+         if (!total) { return; }
+         html += '<div class="meter"><b>' + COLOR_NAMES[c] + '<span>' + got + ' / ' + total + ' ★</span></b>' +
+            '<div class="bar"><div style="width:' + (100 * got / total) + '%;background:var(--' + c + ')"></div></div></div>';
+      });
+      $('progress').innerHTML = html;
+   }
+
+   function renderColors() {
+      var box = $('colors');
+      box.innerHTML = '';
+      var present = COLORS.concat(['autre']).filter(function (c) { return TASKS.some(function (t) { return colorOf(t) === c; }); });
+      var all = document.createElement('button');
+      all.className = 'chip' + (me().colors.length ? '' : ' on');
+      all.textContent = T.allColors;
+      all.onclick = function () { me().colors = []; save(); render(); };
+      box.appendChild(all);
+      present.forEach(function (c) {
+         var b = document.createElement('button');
+         b.className = 'chip' + (me().colors.indexOf(c) >= 0 ? ' on' : '');
+         b.innerHTML = '<i style="background:var(--' + c + ')"></i>' + COLOR_NAMES[c];
+         b.onclick = function () {
+            var list = me().colors, i = list.indexOf(c);
+            if (i >= 0) { list.splice(i, 1); } else { list.push(c); }
+            save(); render();
+         };
+         box.appendChild(b);
+      });
+   }
+
+   function render() {
+      if (!store.profiles[store.current]) { chooseProfile(); }
+      var view = me().view;
+      document.body.classList.toggle('big', !!(AGES[me().age] && AGES[me().age].big));
+      $('who').textContent = '👤 ' + (store.current || T.who);
+      Rea.sounds = soundsOn();
+      Rea.outfit = wearing();
+      $('mapview').textContent = M.map;
+      $('trophies').textContent = R.shelf;
+      checkRewards(true);
+      var h1 = document.querySelector('.top h1');
+      h1.innerHTML = Rea.face(44, Rea.outfit) + '<span>' + esc(T.home) + '</span>';
+      h1.onclick = function () { reaSay(Rea.line('hello', { name: esc(store.current || '') }), 'happy'); };
+      greet();
+      $('lang').textContent = L.FLAGS[L.lang] + ' ' + L.LANGS[L.lang];
+      Array.prototype.forEach.call($('views').children, function (b) { b.className = b.dataset.view === view ? 'on' : ''; });
+      renderColors();
+      renderProgress();
+      $('list').innerHTML = '';
+      if (!TASKS.length) {
+         $('list').innerHTML = '<p class="note">' + esc(T.noTasks) + '</p>';
+         return;
+      }
+      var shown = TASKS.filter(visible);
+      if (view !== 'mock') { renderMission(); }
+      // the youngest see "Learn to play" first, the older ones at the end
+      var young = me().age === 'petit' || me().age === 'moyen';
+      if (young && view !== 'mock') { section(T.learn, T.learnAbout, TUTORIALS); }
+
+      if (view === 'map') {
+         renderMap(shown);
+      } else if (view === 'skill') {
+         SKILLS.forEach(function (s) {
+            section(SKILL_NAMES[s][0], SKILL_NAMES[s][1], shown.filter(function (t) { return t.skill === s; }).sort(order));
+         });
+      } else if (view === 'mock') {
+         renderMock();
+      } else {
+         var groups = rounds().filter(function (r) { return visible(r.sample); });
+         groups.sort(function (a, b) {
+            return ((b.sample.custom ? 1 : 0) - (a.sample.custom ? 1 : 0)) || ((b.sample.year || 0) - (a.sample.year || 0)) || ((b.sample.tour || 0) - (a.sample.tour || 0)) ||
+               String(a.sample.group || '').localeCompare(String(b.sample.group || '')) ||
+               (COLORS.indexOf(colorOf(a.sample)) - COLORS.indexOf(colorOf(b.sample)));
+         });
+         groups.forEach(function (r) {
+            var t = r.sample;
+            section(roundName(t), t.color ? f('category', { name: (COLOR_NAMES[t.color] || t.color).toLowerCase() }) : '', r.tasks);
+         });
+      }
+      if (!young && view !== 'mock') { section(T.learn, T.learnAbout, TUTORIALS); }
+      var pl = document.createElement('p');
+      pl.className = 'parentlink';
+      pl.innerHTML = '<button id="parents">' + esc(P.link) + '</button>';
+      pl.firstChild.onclick = function () { askParent(showParents); };
+      $('list').appendChild(pl);
+   }
+
+   function renderMock() {
+      var list = $('list');
+      list.innerHTML = '<h2>' + esc(T.mockTitle) + '</h2><p class="note">' + esc(T.mockAbout) + '</p>' +
+         '<div class="row"><label for="minutes">' + esc(T.minutes) + '</label><input type="number" id="minutes" min="5" max="180" value="45"></div>';
+      var grid = document.createElement('div');
+      grid.className = 'mock';
+      rounds().filter(function (r) { return visible(r.sample); }).sort(function (a, b) {
+         return (((b.sample.year || 0) - (a.sample.year || 0)) || ((b.sample.tour || 0) - (a.sample.tour || 0)) ||
+            String(a.sample.group || '').localeCompare(String(b.sample.group || '')) ||
+            (COLORS.indexOf(colorOf(a.sample)) - COLORS.indexOf(colorOf(b.sample))));
+      }).forEach(function (r) {
+         var t = r.sample, b = document.createElement('button');
+         b.style.setProperty('--c', 'var(--' + colorOf(t) + ')');
+         b.innerHTML = '<strong>' + esc(roundName(t)) + (t.color ? ' · ' + esc(COLOR_NAMES[t.color] || t.color) : '') + '</strong>' +
+            '<em>' + esc(f('problems', { n: r.tasks.length })) + '</em>';
+         b.onclick = function () {
+            var minutes = Math.max(1, Number($('minutes').value) || 45);
+            play(r.tasks.map(function (x) { return x.id; }), r.tasks[0].id,
+               { title: b.querySelector('strong').textContent, end: Date.now() + minutes * 60000, got: {} });
+         };
+         grid.appendChild(b);
+      });
+      list.appendChild(grid);
+   }
+
+   /* ---------- player ---------- */
+   var frames = {};      // task id -> iframe, kept alive so a program is not lost when changing problem
+   var frameOrder = [];
+   var playing = null;   // { ids, id, mock }
+   var ticker = null;
+
+   function frameFor(id) {
+      if (!frames[id]) {
+         var f = document.createElement('iframe');
+         f.src = BY_ID[id].path;
+         f.title = BY_ID[id].title;
+         $('frames').appendChild(f);
+         frames[id] = f;
+      }
+      frameOrder = frameOrder.filter(function (x) { return x !== id; });
+      frameOrder.push(id);
+      while (frameOrder.length > MAX_FRAMES && !(playing && playing.mock)) {
+         var old = frameOrder.shift();
+         frames[old].remove();
+         delete frames[old];
+      }
+      return frames[id];
+   }
+   function dropFrames() {
+      Object.keys(frames).forEach(function (id) { frames[id].remove(); });
+      frames = {}; frameOrder = [];
+   }
+
+   function play(ids, id, mock) {
+      if (mock) { dropFrames(); }
+      playing = { ids: ids, id: id, mock: mock };
+      $('home').hidden = true;
+      $('player').hidden = false;
+      $('clock').hidden = $('finish').hidden = !mock;
+      $('prev').hidden = $('next').hidden = !!mock;
+      $('mocktabs').innerHTML = '';
+      if (mock) {
+         ids.forEach(function (x, i) {
+            var b = document.createElement('button');
+            b.dataset.id = x;
+            b.onclick = function () { show(x); };
+            $('mocktabs').appendChild(b);
+         });
+         clearInterval(ticker);
+         ticker = setInterval(tick, 500);
+         tick();
+      }
+      show(id);
+   }
+
+   function show(id) {
+      stopSpeaking();
+      Rea.hide();
+      $('hint').classList.remove('glow');
+      playing.id = id;
+      var t = BY_ID[id], f = frameFor(id);
+      Object.keys(frames).forEach(function (x) { frames[x].className = x === id ? 'on' : ''; });
+      $('ptitle').innerHTML = esc(t.title) + '<small>' + esc(where(t)) + '</small>';
+      $('solution').hidden = !!playing.mock || !SOLUTIONS[id];
+      refreshBar();
+      f.focus();
+   }
+
+   function refreshBar() {
+      if (!playing) { return; }
+      var t = BY_ID[playing.id], mock = playing.mock;
+      $('pstars').innerHTML = starsHtml(mock ? (mock.got[t.id] || 0) : starsOf(t.id), t.levels.length);
+      Array.prototype.forEach.call($('mocktabs').children, function (b, i) {
+         b.className = b.dataset.id === playing.id ? 'on' : '';
+         b.textContent = (i + 1) + ' ' + '★'.repeat(mock.got[b.dataset.id] || 0);
+      });
+   }
+
+   /* ---------- read the statement aloud (the youngest cannot read yet) ---------- */
+   var speaking = false;
+   function stopSpeaking() {
+      speaking = false;
+      $('listen').className = '';
+      if (window.AndroidBridge && AndroidBridge.stopSpeaking) { AndroidBridge.stopSpeaking(); }
+      else if (window.speechSynthesis) { speechSynthesis.cancel(); }
+   }
+   function statement(id) {
+      try {
+         var doc = frames[id].contentDocument;
+         var intro = doc.getElementById('taskIntro');
+         return (intro ? intro.innerText : '').replace(/\s+\n/g, '\n').trim();
+      } catch (e) { return ''; }
+   }
+   function listen() {
+      if (speaking) { stopSpeaking(); return; }
+      var text = statement(playing.id);
+      if (!text) { return; }
+      speaking = true;
+      $('listen').className = 'on';
+      if (window.AndroidBridge && AndroidBridge.speak) {
+         if (AndroidBridge.speakIn) { AndroidBridge.speakIn(text, L.lang); } else { AndroidBridge.speak(text); }
+         return;
+      }
+      if (!window.speechSynthesis) { speaking = false; $('listen').className = ''; return; }
+      var u = new SpeechSynthesisUtterance(text);
+      u.lang = L.speech;
+      u.rate = 0.9;
+      u.onend = u.onerror = function () { speaking = false; $('listen').className = ''; };
+      speechSynthesis.speak(u);
+   }
+   // called by the Android application when it has finished reading
+   window.appSpeechDone = function () { speaking = false; $('listen').className = ''; };
+
+   /* ---------- Réa, the robot friend (rea.js): she greets, encourages and celebrates ---------- */
+   var tries = {};   // failed runs per problem, since it was opened
+   // the youngest also hear her (they may not read yet)
+   function aloud(text) {
+      if (me().age !== 'petit' || !text) { return; }
+      if (window.AndroidBridge && AndroidBridge.speakIn) { AndroidBridge.speakIn(text, L.lang); return; }
+      if (!window.speechSynthesis) { return; }
+      speechSynthesis.cancel();
+      var u = new SpeechSynthesisUtterance(text);
+      u.lang = L.speech; u.rate = 0.95;
+      speechSynthesis.speak(u);
+   }
+   function reaSay(text, mood, ms) { Rea.say(text, { mood: mood, ms: ms, speak: aloud }); }
+   var greeted = false;
+   function greet() {
+      if (greeted || !store.profiles[store.current]) { return; }
+      greeted = true;
+      var p = me(), now = Date.now(), away = p.lastVisit && now - p.lastVisit > 2 * 86400000;
+      p.lastVisit = now; save();
+      setTimeout(function () { reaSay(Rea.line(away ? 'back' : 'hello', { name: esc(store.current) }), 'happy'); }, 600);
+   }
+   function onRunFailed(id, message) {
+      tries[id] = (tries[id] || 0) + 1;
+      $('hint').classList.toggle('glow', tries[id] >= 2);
+      Rea.sound('fail');
+      var text = Rea.line(tries[id] >= 3 && tries[id] % 3 === 0 ? 'failMany' : 'fail');
+      reaSay(text + (message ? '<br><b>' + esc(message) + '</b>' : ''), 'think', 7000);
+   }
+   function onSolved(id, before, after, total, blocks) {
+      var n = tries[id] || 0;
+      tries[id] = 0;
+      $('hint').classList.remove('glow');
+      if (after > before) {
+         Rea.sound('win'); Rea.buzz(60); Rea.confetti();
+         for (var i = before; i < after; i++) { setTimeout(function () { Rea.sound('star'); Rea.flyStar(null, $('pstars')); }, 500 + (i - before) * 300); }
+      } else {
+         Rea.sound('star');
+      }
+      var text = after >= total && after > before ? Rea.line('allStars') :
+         n >= 3 ? Rea.line('winTries', { n: n + 1 }) :
+         blocks && blocks <= 4 && Math.random() < 0.5 ? Rea.line('winFew', { n: blocks }) :
+         Rea.line('win', { name: esc(store.current || '') });
+      if (after < total && after > before) { text += '<br>' + Rea.line('next'); }
+      reaSay(text, 'happy', 7000);
+   }
+
+   /* ---------- the step-by-step guide of the task page (tutorial.js) ---------- */
+   // 💡: a hint in 3 steps, shown by the task page (tutorial.js) from the checked solutions
+   function askHint() {
+      var f = frames[playing.id];
+      $('hint').classList.remove('glow');
+      if (f) { f.contentWindow.postMessage({ source: 'algorea-trainer', type: 'hint', solutions: SOLUTIONS[playing.id] || {}, speak: me().age === 'petit' }, '*'); }
+   }
+   function startGuide(target) {
+      stopSpeaking();
+      target = target || (frames[playing.id] && frames[playing.id].contentWindow);
+      if (target) { target.postMessage({ source: 'algorea-trainer', type: 'tutorial', speak: me().age === 'petit' }, '*'); }
+   }
+
+   function step(d) {
+      var i = playing.ids.indexOf(playing.id) + d;
+      if (i >= 0 && i < playing.ids.length) { show(playing.ids[i]); }
+   }
+
+   function tick() {
+      var left = Math.max(0, playing.mock.end - Date.now());
+      var m = Math.floor(left / 60000), s = Math.floor(left / 1000) % 60;
+      $('clock').textContent = m + ':' + (s < 10 ? '0' : '') + s;
+      $('clock').className = left < 5 * 60000 ? 'late' : '';
+      if (!left) { finishMock(true); }
+   }
+
+   function finishMock(timeUp) {
+      clearInterval(ticker);
+      var mock = playing.mock, got = 0, total = 0, rows = '';
+      playing.ids.forEach(function (id, i) {
+         var t = BY_ID[id], n = mock.got[id] || 0;
+         got += n; total += t.levels.length;
+         rows += '<tr><td>' + (i + 1) + '. ' + esc(t.title) + '</td><td><span class="stars">' + starsHtml(n, t.levels.length) + '</span></td></tr>';
+      });
+      var box = dialog('<h3>' + esc(timeUp ? T.timeUp : T.roundDone) + '</h3><p>' + esc(mock.title) + '</p>' +
+         '<table>' + rows + '<tr><td><b>' + esc(T.total) + '</b></td><td><b>' + got + ' / ' + total + ' ★</b></td></tr></table>' +
+         '<div class="row"><button id="ok" class="main">' + esc(T.toHome) + '</button></div>');
+      box.querySelector('#ok').onclick = function () { closeDialog(); goHome(); };
+   }
+
+   function goHome() {
+      stopSpeaking();
+      clearInterval(ticker);
+      if (playing && playing.mock) { dropFrames(); }
+      playing = null;
+      $('player').hidden = true;
+      $('home').hidden = false;
+      render();
+   }
+
+   function chooseSolution() {
+      var id = playing.id, t = BY_ID[id], sol = SOLUTIONS[id];
+      var box = dialog('<h3>' + esc(f('solutionOf', { title: t.title })) + '</h3><p>' + esc(T.solutionAbout) + '</p><div class="row" id="lv"></div>' +
+         '<div class="row"><button id="no">' + esc(T.cancel) + '</button></div>');
+      box.querySelector('#no').onclick = closeDialog;
+      t.levels.forEach(function (level) {
+         if (!sol[level]) { return; }
+         var b = document.createElement('button');
+         b.textContent = LEVEL_NAMES[level];
+         b.onclick = function () {
+            frames[id].contentWindow.postMessage({ source: 'algorea-trainer', type: 'loadProgram', level: level, xml: sol[level] }, '*');
+            closeDialog();
+         };
+         box.querySelector('#lv').appendChild(b);
+      });
+   }
+
+   /* ---------- messages from the task pages (bridge.js) ---------- */
+   window.addEventListener('message', function (event) {
+      var msg = event.data;
+      if (!msg || msg.source !== 'algorea-task') { return; }
+      var id = Object.keys(frames).filter(function (x) { return frames[x].contentWindow === event.source; })[0];
+      if (!id) { return; }
+      var t = BY_ID[id], mock = playing && playing.mock;
+
+      if (msg.type === 'ready') {
+         event.source.postMessage({ source: 'algorea-trainer', type: 'config', gentle: isYoung(), bigBlocks: me().age === 'petit' }, '*');
+         // outside a mock round, put back the programs of the last visit
+         if (!mock && me().answers[id] && !t.tutorial) {
+            event.source.postMessage({ source: 'algorea-trainer', type: 'restore', answer: me().answers[id] }, '*');
+         } else if (!starsOf(id) && t.levels.length) {
+            event.source.postMessage({ source: 'algorea-trainer', type: 'setLevel', level: t.levels[0] }, '*');
+         }
+         // the guide: always in "Learn to play", and the first time a young child meets a world
+         var p = store.profiles[store.current], world = msg.world;
+         if (world && world !== 'none') { worldOf[id] = world; }
+         var young = p && (p.age === 'petit' || p.age === 'moyen');
+         if (t.tutorial || (!mock && young && world && world !== 'none' && !(p.tutorials || {})[world])) {
+            if (p && world && world !== 'none') { (p.tutorials = p.tutorials || {})[world] = true; save(); }
+            var target = event.source;
+            setTimeout(function () { if (playing && playing.id === id) { startGuide(target); } }, 1200);
+         }
+         return;
+      }
+      if (msg.type === 'hintUsed') {
+         if (store.profiles[store.current]) {
+            var used = me().hints = me().hints || {};
+            used[id] = Math.max(used[id] || 0, msg.step); save();
+         }
+         return;
+      }
+      if (msg.type === 'snap') { Rea.sound('snap'); Rea.buzz(15); return; }
+      if (msg.type === 'runFailed') { if (playing && playing.id === id && !mock) { onRunFailed(id, msg.message); } return; }
+      if (msg.type === 'score') {
+         var n = countStars(t, msg.score, msg.maxScores), had = mock ? (mock.got[id] || 0) : starsOf(id);
+         if (msg.score > 0 && playing && playing.id === id && !mock) { onSolved(id, had, Math.max(had, n), t.levels.length, msg.blocks); }
+         if (mock) { mock.got[id] = Math.max(mock.got[id] || 0, n); }
+         if (store.profiles[store.current]) {
+            if (n > starsOf(id)) {
+               questProgress(t, starsOf(id), n); me().stars[id] = n;
+               var w = t.tutorial || worldOf[id];
+               if (w && STICKERS[w]) { (me().stickers = me().stickers || {})[w] = true; }
+               if (!mock) { checkRewards(false); }
+            }
+            if (!mock && msg.answer) { me().answers[id] = msg.answer; }
+            save();
+         }
+         refreshBar();
+      }
+   });
+
+   /* ---------- buttons ---------- */
+   $('who').onclick = chooseProfile;
+   $('trophies').onclick = showShelf;
+   $('lang').onclick = chooseLanguage;
+   $('editor').onclick = function () { location.href = 'editeur.html'; };
+   $('received').onclick = function () { location.href = 'partage.html'; };
+   $('listen').onclick = listen;
+   $('guide').onclick = function () { startGuide(); };
+   $('hint').onclick = askHint;
+   // in the Android application: the errors met by the pages, to help find what does not work
+   window.appErrorsChanged = function () { $('errors').hidden = false; };
+   $('errors').onclick = function () {
+      var box = dialog('<h3>' + esc(T.errorsTitle) + '</h3><p class="note">' + esc(T.errorsAbout) + '</p>' +
+         '<pre style="white-space:pre-wrap;font-size:12px;max-height:50vh;overflow:auto"></pre>' +
+         '<div class="row"><button id="close">' + esc(T.close) + '</button></div>');
+      box.querySelector('pre').textContent = navigator.userAgent + '\n\n' +
+         (window.AndroidBridge && AndroidBridge.errors ? AndroidBridge.errors() : '');
+      box.querySelector('#close').onclick = closeDialog;
+   };
+   // the Android back button: closes a dialog, then the problem; false lets the application decide
+   window.appBack = function () {
+      if (!$('veil').hidden) {
+         // the dialog's own way out: "Fermer" / "Annuler", or "Retour à l'accueil" after a mock round
+         var out = $('box').querySelector('#close') || $('box').querySelector('#no') || $('box').querySelector('#ok');
+         if (out) { out.onclick(); }
+         return true;
+      }
+      if (!$('player').hidden) { $('back').onclick(); return true; }
+      return false;
+   };
+   $('views').onclick = function (e) {
+      if (e.target.dataset.view) { me().view = e.target.dataset.view; save(); render(); }
+   };
+   $('back').onclick = function () {
+      if (playing.mock) { finishMock(false); } else { goHome(); }
+   };
+   $('finish').onclick = function () { finishMock(false); };
+   $('prev').onclick = function () { step(-1); };
+   $('next').onclick = function () { step(1); };
+   $('solution').onclick = function () { askParent(chooseSolution); };
+
+   render();
+})();
+</script>
+</body>
+</html>

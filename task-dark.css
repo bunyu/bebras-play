@@ -1,0 +1,39 @@
+/* Colours of the task pages, the same as the trainer's (theme.css): cream paper, white panels,
+   a light sky-blue list of blocks. Loaded by bridge.js, so it applies to every task.
+   (The file kept its old name, from when the pages were dark.) */
+html, body, #task, #taskContent, #gridButtonsAfter, #gridButtonsBefore, #tabsContainer, #tabsMenu,
+#testSelector, .testTab { background-color: #f7f1e1 !important; }
+body, #task, #taskIntro, #taskIntro p, #taskIntro li, #taskIntro h3, .gridArea, #blocklyLibContent,
+#tabsContainer, .testTab { color: #3a3f4b !important; }
+#task h1 { color: #2f6fb3 !important; }
+#task a { color: #2f6fb3 !important; }
+
+#taskIntro, .gridArea, .introGrid, #introGrid, #blocklyLibContent, .blocklySvg,
+#tabsContainer .li.current, .testTab.currentTest, .showLongIntro { background-color: #ffffff !important; }
+#tabsContainer .li { color: #8a8475 !important; }
+#tabsContainer .li.current, .testTab.currentTest { color: #2f6fb3 !important; }
+#taskIntro { font-size: 17px; }
+
+#grid { background-color: #eaf6fd !important; border-radius: 12px; }
+
+/* the list of blocks: a light blue strip, like a block toolbox */
+.blocklyFlyoutBackground { fill: #d7ecfb !important; fill-opacity: 1 !important; }
+.blocklyToolboxDiv { background-color: #bfe0f7 !important; color: #2d3e5c !important; }
+.blocklyTreeRow:hover { background-color: #a9d4f3 !important; }
+.blocklyTreeLabel { color: #2d3e5c !important; font-weight: 700; }
+.blocklyScrollbarHandle { fill: #9fb8cc !important; }
+#capacity { background-color: rgba(255, 255, 255, .9) !important; color: #3a3f4b !important; }
+.speedSlider { background-color: rgba(255, 255, 255, .5) !important; }
+
+/* rules the engine marks as important, or draws with shadows */
+.blocklyToolboxDiv.blocklyToolboxDiv.blocklyToolboxDiv { background-color: #bfe0f7 !important; }
+.blocklyTreeLabel.blocklyTreeLabel.blocklyTreeLabel { color: #2d3e5c !important; }
+:not(.x) :not(.y) div[role=treeitem] { border-bottom-color: #a9d4f3 !important; }
+#tabsMenu .li.current::before, .tabs-area .li.current::before,
+#testSelector .testTab.currentTest::before { box-shadow: 10px 0 0 #ffffff !important; }
+#tabsMenu .li.current::after, .tabs-area .li.current::after,
+#testSelector .testTab.currentTest::after { box-shadow: -10px 0 0 #ffffff !important; }
+#tabsMenu .li.current { background: #ffffff !important; }
+html body .speedSlider { background-color: rgba(255, 255, 255, .7) !important; }
+#openEditorMenu { background-color: #4a90d6 !important; color: #fff !important; }
+#modeSelector .mode.active, #modeSelector #mode-player { background-color: #4a90d6; }

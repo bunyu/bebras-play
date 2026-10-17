@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Problème partagé</title>
+<script src="lang.js"></script>
+<script>AlgoreaLang.loadTaskTexts();</script>
+<!-- Opens a problem someone shared:  partage.html#p=<code>  (or ?p=<code>). See mes_problemes/share.js.
+     Works in a browser (the web client) and inside the Android application. -->
+<style>
+   :root {
+      --bg: #171b21; --card: #22272e; --ink: #e3e7ec; --soft: #9aa4af; --line: #39414b;
+      --accent: #3d86d8; --star: #f2b01e; --warn: #ffb4a8; --ok: #7fd49a;
+      --blanche: #c3cad2; --jaune: #f0c000; --orange: #f08a00; --vert: #3aa655;
+      color-scheme: dark;
+   }
+   * { box-sizing: border-box; }
+   html, body { height: 100%; margin: 0; }
+   body { font-family: "Segoe UI", Roboto, Arial, sans-serif; background: var(--bg); color: var(--ink); font-size: 18px; }
+   button, a.button { font: inherit; cursor: pointer; border: 1px solid var(--line); background: var(--card); color: var(--ink);
+            border-radius: 14px; padding: 12px 20px; min-height: 56px; text-decoration: none; display: inline-flex;
+            align-items: center; justify-content: center; gap: 8px; }
+   button.main { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 700; font-size: 22px; }
+   [hidden] { display: none !important; }
+   main { max-width: 640px; margin: 0 auto; padding: 20px 16px; }
+   h1 { font-size: 24px; margin: 0 0 16px; }
+   .card { background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 20px; position: relative; overflow: hidden; }
+   .card::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 10px; background: var(--c, var(--blanche)); }
+   .head { display: flex; gap: 16px; align-items: center; }
+   .head img { width: 72px; height: 72px; object-fit: contain; background: #e9edf1; border-radius: 14px; flex: none; }
+   .head h2 { margin: 0; font-size: 24px; }
+   .head p { margin: 4px 0 0; color: var(--soft); font-size: 16px; }
+   .stars { color: var(--star); font-size: 26px; letter-spacing: 2px; margin: 14px 0 4px; }
+   .actions { display: flex; flex-direction: column; gap: 12px; margin-top: 18px; }
+   textarea { width: 100%; min-height: 110px; font: inherit; font-size: 15px; background: var(--bg); color: var(--ink);
+              border: 1px solid var(--line); border-radius: 12px; padding: 10px; }
+   .msg { min-height: 26px; margin: 12px 0 0; }
+   .msg.bad { color: var(--warn); } .msg.good { color: var(--ok); }
+   .note { color: var(--soft); font-size: 15px; }
+   #play { position: fixed; inset: 0; display: flex; flex-direction: column; background: var(--bg); }
+   #play .bar { display: flex; gap: 10px; align-items: center; padding: 6px 10px; background: var(--card); border-bottom: 1px solid var(--line); }
+   #play .bar button { min-height: 44px; padding: 6px 14px; }
+   #play iframe { flex: 1; border: 0; width: 100%; }
+</style>
+<link rel="stylesheet" href="theme.css">
+</head>
+<body>
+<main>
+   <h1 data-t="heading">🤖 Problème partagé</h1>
+
+   <div id="found" hidden>
+      <div class="card" id="card">
+         <div class="head"><img id="icon" alt=""><div><h2 id="title"></h2><p id="world"></p></div></div>
+         <div class="stars" id="stars"></div>
+         <div class="note" id="about"></div>
+      </div>
+      <div class="actions">
+         <button class="main" id="go" data-t="play">▶ Jouer</button>
+         <button id="keep" data-t="keep">⭐ Garder dans mes problèmes</button>
+         <button id="remix" data-t="remix">✏️ Modifier une copie</button>
+         <a class="button" id="inapp" hidden data-t="inApp">📱 Ouvrir dans l'application</a>
+      </div>
+   </div>
+
+   <div id="ask" hidden>
+      <p data-t="paste">Colle ici le lien ou le code que tu as reçu :</p>
+      <textarea id="code" placeholder="https://…/partage.html#p=…"></textarea>
+      <div class="actions"><button class="main" id="open" data-t="open">Ouvrir</button></div>
+   </div>
+
+   <div class="msg" id="msg"></div>
+   <div class="actions">
+      <a class="button" href="algorea.html" data-t="home">🏠 Accueil</a>
+      <a class="button" href="editeur.html" data-t="create">🛠️ Créer mon propre problème</a>
+   </div>
+</main>
+
+<div id="play" hidden>
+   <div class="bar"><button id="back" data-t="back">← Retour</button><span id="ptitle"></span></div>
+   <iframe id="frame" title="Problème" data-title="frame"></iframe>
+</div>
+
+<script src="mes_problemes/data.js"></script>
+<script src="mes_problemes/store.js"></script>
+<script src="mes_problemes/share.js"></script>
+<script>
+(function () {
+   'use strict';
+   var C = window.AlgoreaCustom, S = window.AlgoreaShare, L = window.AlgoreaLang;
+   var APP_PACKAGE = 'io.github.bunyu.bebras';
+   var problem = null, keptId = null;
+   var T = AlgoreaLang.pick({
+      fr: {
+         world: '{name} : {goal}', title: 'Problème partagé', heading: '🤖 Problème partagé', play: '▶ Jouer', keep: '⭐ Garder dans mes problèmes',
+         remix: '✏️ Modifier une copie', inApp: '📱 Ouvrir dans l\'application',
+         paste: 'Colle ici le lien ou le code que tu as reçu :', open: 'Ouvrir', home: '🏠 Accueil',
+         create: '🛠️ Créer mon propre problème', back: '← Retour', frame: 'Problème',
+         versions: '{n} versions, de la plus facile à la plus difficile.', oneVersion: '1 version.',
+         by: ' Créé par {name}.', pageTitle: '{title} – problème partagé',
+         unreadable: 'Ce lien ne contient pas de problème lisible. Vérifie qu\'il a été copié en entier.',
+         noStorage: 'Ce navigateur refuse de garder le problème : impossible de jouer.',
+         kept: 'C\'est gardé ! Tu le retrouves à l\'accueil, sous « Mes problèmes ».'
+      },
+      en: {
+         world: '{name}: {goal}', title: 'Shared problem', heading: '🤖 Shared problem', play: '▶ Play', keep: '⭐ Keep in my problems',
+         remix: '✏️ Edit a copy', inApp: '📱 Open in the app',
+         paste: 'Paste the link or the code you received here:', open: 'Open', home: '🏠 Home',
+         create: '🛠️ Make my own problem', back: '← Back', frame: 'Problem',
+         versions: '{n} versions, from the easiest to the hardest.', oneVersion: '1 version.',
+         by: ' Made by {name}.', pageTitle: '{title} – shared problem',
+         unreadable: 'This link does not contain a problem that can be read. Check that it was copied in full.',
+         noStorage: 'This browser will not keep the problem: it cannot be played.',
+         kept: 'Kept! You will find it on the home page, under “My problems”.'
+      },
+      vi: {
+         world: '{name}: {goal}', title: 'Bài được chia sẻ', heading: '🤖 Bài được chia sẻ', play: '▶ Chơi', keep: '⭐ Lưu vào bài của tôi',
+         remix: '✏️ Sửa một bản sao', inApp: '📱 Mở trong ứng dụng',
+         paste: 'Hãy dán vào đây đường link hoặc mã mà bạn nhận được:', open: 'Mở', home: '🏠 Trang chính',
+         create: '🛠️ Tự tạo bài của mình', back: '← Quay lại', frame: 'Bài',
+         versions: '{n} mức, từ dễ nhất đến khó nhất.', oneVersion: '1 mức.',
+         by: ' Do {name} tạo.', pageTitle: '{title} – bài được chia sẻ',
+         unreadable: 'Đường link này không có bài nào đọc được. Hãy kiểm tra xem bạn đã sao chép đủ chưa.',
+         noStorage: 'Trình duyệt này không cho lưu bài: không chơi được.',
+         kept: 'Đã lưu! Bạn sẽ thấy bài ở trang chính, trong mục “Bài của tôi”.'
+      }
+   });
+   Array.prototype.forEach.call(document.querySelectorAll('[data-t]'), function (el) { el.textContent = T[el.dataset.t]; });
+   Array.prototype.forEach.call(document.querySelectorAll('[data-title]'), function (el) { el.title = T[el.dataset.title]; });
+   document.title = T.title;
+   function $(id) { return document.getElementById(id); }
+   function say(text, kind) { $('msg').textContent = text || ''; $('msg').className = 'msg ' + (kind || ''); }
+
+   function show(p) {
+      problem = p;
+      keptId = null;
+      var world = C.WORLDS[p.world];
+      var seen = C.shown(p);   // a starter problem in the child's language (p itself is kept as received)
+      $('ask').hidden = true;
+      $('found').hidden = false;
+      $('card').style.setProperty('--c', 'var(--' + p.color + ')');
+      $('icon').src = 'mes_problemes/' + world.images + '/icon.png';
+      $('title').textContent = seen.title;
+      $('world').textContent = L.fmt(T.world, { name: world.name, goal: world.goal });
+      $('stars').textContent = p.versions.map(function (v) { return '★'.repeat(v.stars); }).join('  ');
+      $('about').textContent = (p.versions.length > 1 ? L.fmt(T.versions, { n: p.versions.length }) : T.oneVersion) +
+         (p.author ? L.fmt(T.by, { name: p.author }) : '');
+      document.title = L.fmt(T.pageTitle, { title: seen.title });
+      // a phone browser can hand the link to the application, when it is installed
+      var android = /Android/i.test(navigator.userAgent) && !window.AndroidBridge && location.protocol === 'https:';
+      $('inapp').hidden = !android;
+      if (android) {
+         S.encode(p).then(function (code) {
+            $('inapp').href = 'intent://' + location.host + location.pathname + '?p=' + code +
+               '#Intent;scheme=https;package=' + APP_PACKAGE + ';end';
+         });
+      }
+   }
+
+   function load(text) {
+      say('');
+      return S.decode(text).then(show).catch(function (e) {
+         $('found').hidden = true;
+         $('ask').hidden = false;
+         say(T.unreadable, 'bad');
+      });
+   }
+
+   $('open').onclick = function () { load($('code').value); };
+   $('go').onclick = function () {
+      try { localStorage.setItem('algoreaShared', JSON.stringify(problem)); }
+      catch (e) { say(T.noStorage, 'bad'); return; }
+      $('ptitle').textContent = C.shown(problem).title;
+      $('frame').src = 'mes_problemes/task.html?shared=1&t=' + Date.now();
+      $('play').hidden = false;
+   };
+   $('back').onclick = function () { $('play').hidden = true; $('frame').src = 'about:blank'; };
+   $('keep').onclick = function () {
+      if (!keptId) { keptId = S.keep(problem); }
+      say(T.kept, 'good');
+   };
+   $('remix').onclick = function () {
+      if (!keptId) { keptId = S.keep(problem); }
+      location.href = 'editeur.html#open=' + encodeURIComponent(keptId);
+   };
+   // the Android back button closes the game first (see the application's MainActivity)
+   window.appBack = function () {
+      if (!$('play').hidden) { $('back').onclick(); return true; }
+      return false;
+   };
+
+   var code = S.findCode(location.hash) || S.findCode(location.search);
+   if (code) { load(code); } else { $('ask').hidden = false; }
+   window.addEventListener('hashchange', function () { if (S.findCode(location.hash)) { load(location.hash); } });
+})();
+</script>
+</body>
+</html>
