@@ -34,6 +34,15 @@ html:lang(vi) #modeSelector #mode-player:not(.active)::after { content: "Chươn
    #task.mode-player #gridContainer #grid { height: 100% !important; }
    #task.mode-player #gridButtonsBefore, #task.mode-player #gridButtonsAfter { flex: none !important; }
    #task.mode-player #algoreaSplit { display: flex; }
+
+   /* the statement view: the grid above, the text below, a handle between them (bridge.js,
+      --algorea-intro). The engine gave the grid at least half of the height: the text gets more */
+   #task.mode-instructions #gridContainer { flex: 0 0 var(--algorea-intro, 35%) !important; min-height: 0; overflow: hidden; }
+   #task.mode-instructions #gridContainer .gridArea { flex: 1 1 0 !important; min-height: 0; overflow: hidden; }
+   #task.mode-instructions #gridContainer #grid { height: 100% !important; }
+   #task.mode-instructions #gridButtonsBefore, #task.mode-instructions #gridButtonsAfter { flex: none !important; }
+   #task.mode-instructions #taskIntro { flex: 1 1 0 !important; min-height: 0; }
+   #task.mode-instructions #algoreaIntroSplit { display: flex; order: 1; }
 }
 
 /* "N blocks left out of M": the editor's line, now in the run view (the engine hides it there) */
@@ -49,9 +58,9 @@ html:lang(vi) #modeSelector #mode-player:not(.active)::after { content: "Chươn
 
 /* the two handles (bridge.js): under the grid (up / down) and on the right of the list of blocks
    (left / right: the blocks of the list get smaller or bigger) */
-#algoreaSplit { display: none; flex: 0 0 18px; align-items: center; justify-content: center; cursor: row-resize;
+#algoreaSplit, #algoreaIntroSplit { display: none; flex: 0 0 18px; align-items: center; justify-content: center; cursor: row-resize;
    touch-action: none; background: #e6eef7; border-top: 1px solid #c9d8ea; border-bottom: 1px solid #c9d8ea; }
-#algoreaSplit span { width: 54px; height: 6px; border-radius: 3px; background: #8ec3ec; }
+#algoreaSplit span, #algoreaIntroSplit span { width: 54px; height: 6px; border-radius: 3px; background: #8ec3ec; }
 #algoreaListGrip { position: absolute; top: 0; bottom: 0; width: 22px; margin-left: -11px; z-index: 5; cursor: col-resize;
    touch-action: none; display: flex; align-items: center; justify-content: center; }
 #algoreaListGrip[hidden] { display: none; }

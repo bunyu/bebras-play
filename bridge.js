@@ -131,9 +131,16 @@
       // task-mobile.css sizes the task at 100 % of its parent) the whole task then took 0 px
       var task_ = document.getElementById('task'), parent = task_ && task_.parentElement;
       if (phone() && parent && parent !== document.body && !parent.style.height) { parent.style.height = '100%'; }
-      setGridShare(layout.grid || 36, true);   // 36 %: the default of task-mobile.css
+      var mode = task_ && (task_.classList.contains('mode-player') ? 'grid' : task_.classList.contains('mode-instructions') ? 'intro' : '');
+      if (mode) { setShare(mode, layout[mode] || SPLITS[mode].initial, true); }
       var split = grip('algoreaSplit', 'Glisser pour agrandir la grille ou le programme');
-      if (split.parentNode !== content) { content.insertBefore(split, lib); dragY(split); }
+      if (split.parentNode !== content) { content.insertBefore(split, lib); dragY(split, 'grid'); }
+      // in the statement view: between the grid and the text (task-mobile.css puts it there with "order")
+      var area = document.getElementById('introGrid'), intro = document.getElementById('taskIntro');
+      if (area && intro) {
+         var introSplit = grip('algoreaIntroSplit', 'Glisser pour agrandir la grille ou l\u2019énoncé');
+         if (introSplit.parentNode !== area) { area.insertBefore(introSplit, intro); dragY(introSplit, 'intro'); }
+      }
       var side = grip('algoreaListGrip', 'Glisser pour changer la taille de la liste des blocs');
       if (side.parentNode !== container) { container.appendChild(side); dragX(side); }
       var flyout = ws.flyout_;
@@ -160,31 +167,37 @@
          el.addEventListener('pointercancel', up);
       });
    }
-   // up / down: the share of the height for the grid (15 % to 75 %, and at least 210 px: the engine never
-   // draws the grid smaller than 150 px, and the test tabs go under it). The engine draws the grid again
-   // at the new size on a window "resize"; redraw asks for one when the share changed.
-   var GRID_MIN_PX = 210, appliedGrid = null;
+   // up / down: the share of the height for the grid, in the run view ("grid", the rest is the program)
+   // and in the statement view ("intro", the rest is the text). Never below what the grid needs: the
+   // engine never draws it smaller than 150 px, and the test tabs go under it. The engine draws the grid
+   // again at the new size on a window "resize"; redraw asks for one when the share changed.
+   var SPLITS = {
+      grid: { mode: 'mode-player', variable: '--algorea-grid', box: 'taskContent', area: 'introGrid', initial: 36, max: 75 },
+      intro: { mode: 'mode-instructions', variable: '--algorea-intro', box: 'introGrid', area: 'gridContainer', initial: 35, max: 80 }
+   };
+   var GRID_MIN_PX = 210, applied = {};
    // what the grid area needs at least: the engine's smallest grid (150 px and its margin) plus what this
    // task puts around the grid (test tabs, sometimes on several lines)
-   function gridMinPx() {
-      var area = document.getElementById('introGrid'), grid = document.getElementById('grid');
-      if (!area || !grid || !document.getElementById('task').classList.contains('mode-player')) { return GRID_MIN_PX; }
+   function gridMinPx(kind) {
+      var split = SPLITS[kind], area = document.getElementById(split.area), grid = document.getElementById('grid');
+      if (!area || !grid || !document.getElementById('task').classList.contains(split.mode)) { return GRID_MIN_PX; }
       return Math.max(GRID_MIN_PX, area.getBoundingClientRect().height - grid.getBoundingClientRect().height + 176);
    }
-   function setGridShare(pct, redraw) {
-      var content = document.getElementById('taskContent'), height = content ? content.getBoundingClientRect().height : 0;
-      pct = Math.round(clamp(pct, height ? Math.max(15, gridMinPx() * 100 / height) : 15, 75));
-      if (pct === appliedGrid) { return pct; }
-      appliedGrid = pct;
-      document.getElementById('task').style.setProperty('--algorea-grid', pct + '%');
+   function setShare(kind, pct, redraw) {
+      var split = SPLITS[kind], box = document.getElementById(split.box);
+      var height = box ? box.getBoundingClientRect().height : 0;
+      pct = Math.round(clamp(pct, height ? Math.max(15, gridMinPx(kind) * 100 / height) : 15, split.max));
+      if (pct === applied[kind]) { return pct; }
+      applied[kind] = pct;
+      document.getElementById('task').style.setProperty(split.variable, pct + '%');
       if (redraw) { setTimeout(function () { window.dispatchEvent(new Event('resize')); }, 50); }
       return pct;
    }
    var resizing = 0;
-   function dragY(el) {
+   function dragY(el, kind) {
       onDrag(el, function (e) {
-         var box = document.getElementById('taskContent').getBoundingClientRect();
-         layout.grid = setGridShare((e.clientY - box.top) / box.height * 100, false);
+         var box = document.getElementById(SPLITS[kind].box).getBoundingClientRect();
+         layout[kind] = setShare(kind, (e.clientY - box.top) / box.height * 100, false);
          cancelAnimationFrame(resizing);
          resizing = requestAnimationFrame(function () { if (window.quickAlgoInterface) { quickAlgoInterface.onResize(); } });
       }, function () {
