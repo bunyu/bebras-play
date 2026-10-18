@@ -26,7 +26,13 @@ html:lang(vi) #modeSelector #mode-player:not(.active)::after { content: "Chươn
    #miniPlatformHeader { display: none !important; }
    #task { height: 100% !important; }   /* the engine leaves 40 px for that header */
    /* the grid's share of the height: the handle under it changes it (bridge.js, --algorea-grid) */
-   #task.mode-player #introGrid { flex: 0 0 var(--algorea-grid, 36%) !important; min-height: 0; }
+   #task.mode-player #introGrid { flex: 0 0 var(--algorea-grid, 36%) !important; min-height: 0; overflow: hidden; }
+   /* the grid gets the room left above the test tabs ("Test 1", "Test 2"…), and the engine draws it at that
+      size (it fits the grid to #grid): otherwise a smaller grid area pushed the tabs under the program */
+   #task.mode-player #gridContainer { flex: 1 1 0 !important; min-height: 0; }
+   #task.mode-player #gridContainer .gridArea { flex: 1 1 0 !important; min-height: 0; overflow: hidden; }
+   #task.mode-player #gridContainer #grid { height: 100% !important; }
+   #task.mode-player #gridButtonsBefore, #task.mode-player #gridButtonsAfter { flex: none !important; }
    #task.mode-player #algoreaSplit { display: flex; }
 }
 
