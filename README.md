@@ -5,4 +5,4 @@ or make your own problems with the editor (`editeur.html`). Everything stays in 
 
 Site: https://bunyu.github.io/bebras-play/
 
-These files are generated from the `app` branch of bunyu/bebras by `tools/build_web.sh`; do not edit them here.
+These files are generated from the `app` branch of bunyu/bebras by `python tools/publish_web.py --push` (a release does it too); do not edit them here.

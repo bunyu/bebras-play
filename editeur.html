@@ -73,6 +73,10 @@
    #veil { position: fixed; inset: 0; background: rgba(0, 0, 0, .7); display: flex; flex-direction: column; z-index: 10; }
    #veil .bar { padding: 8px 12px; background: var(--card); display: flex; gap: 12px; align-items: center; }
    #veil iframe { flex: 1; border: 0; width: 100%; }
+   /* the bar keeps its height on a phone; a long title is cut */
+   #veil .bar { flex: none; }
+   #veil .bar button { flex: none; }
+   #trytitle { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 700; }
    @media (max-width: 760px) { body { flex-direction: column; } #side { width: auto; border-right: 0; border-bottom: 1px solid var(--line); } }
    /* on a phone, the list and the open problem are two screens: choosing a problem opens it on its own */
    #tolist { display: none; margin: 0 0 12px; }
@@ -84,6 +88,59 @@
       .row > div { max-width: 100%; }
       #actions .row { gap: 8px; }
       #actions button { padding: 6px 12px; }
+   }
+
+   /* ---------- the steps (both modes) and the child-friendly "simple" mode ---------- */
+   .formtop { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+   .formtop .grow { flex: 1; }
+   #tolist { margin: 0; }
+   .step { background: var(--card); border: 2px solid var(--line); border-radius: 22px; padding: 14px 16px; margin: 14px 0; }
+   .step h2, #actions h2 { display: flex; align-items: center; gap: 10px; margin: 0 0 10px; font-size: 20px; }
+   .step h2 b, #actions h2 b { flex: none; width: 34px; height: 34px; border-radius: 50%; background: var(--accent); color: #fff;
+            display: flex; align-items: center; justify-content: center; font-size: 18px; }
+   .step h3 { font-size: 15px; margin: 4px 0 6px; }
+   .titlerow { display: flex; gap: 8px; }
+   .titlerow input { flex: 1; min-width: 0; font-size: 18px; font-weight: 700; }
+   #colors button i { display: inline-block; width: 14px; height: 14px; border-radius: 50%; margin-right: 6px; vertical-align: -1px;
+            border: 2px solid rgba(0, 0, 0, .12); }
+   #worlds { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+   #worlds button { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 8px; text-align: center; }
+   #worlds .pic { width: 64px; height: 64px; background: #eef3f7 center / contain no-repeat; border-radius: 14px; }
+   #worlds b { font-size: 16px; }
+   #worlds small { font-size: 13px; font-weight: 600; opacity: .8; line-height: 1.25; }
+   #versionbar h2 { font-size: 17px; margin: 18px 0 8px; }
+   .gridbox { overflow-x: auto; padding: 4px 0; }
+   #groups { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; margin: 8px 0 12px; }
+   #groups button { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; padding: 10px 12px; position: relative; }
+   #groups .gicon { font-size: 28px; line-height: 1.1; }
+   #groups b { font-size: 16px; }
+   #groups small { font-size: 12px; font-weight: 600; opacity: .8; line-height: 1.25; }
+   #groups button:not(.on) { opacity: .7; }
+   #groups button:not(.on) .gicon { filter: grayscale(1); }
+   #groups button .tick { position: absolute; right: 10px; top: 8px; font-size: 18px; }
+   #groups button[disabled] { cursor: default; opacity: 1; }
+   .maxrow input { width: 80px !important; text-align: center; font-size: 18px; font-weight: 800; }
+   .maxrow button { min-width: 44px; min-height: 44px; font-size: 20px; }
+   #actions { background: var(--card); border: 2px solid var(--line); border-radius: 22px 22px 0 0; padding: 12px 16px 10px; }
+   #actions .row { margin-bottom: 0; }
+   button.big { font-size: 18px; padding: 10px 20px; min-height: 52px; }
+   button.try { background: #4cbf5c; border-color: #2f9e44; color: #fff; box-shadow: 0 3px 0 #2f9e44; }
+   button.share { background: #f7a440; border-color: #d9822b; color: #fff; box-shadow: 0 3px 0 #d9822b; }
+   #tested { font-weight: 700; margin: 0 0 6px; }
+   #tested.ok { color: var(--ok); }
+   .sharelinkrow { display: flex; gap: 8px; margin-bottom: 6px; }
+   .sharelinkrow input { flex: 1; min-width: 0; }
+   #qr { display: flex; justify-content: center; }
+   #qr svg { width: 220px; height: 220px; background: #fff; border-radius: 12px; }
+   #sharebox { max-height: 50vh; overflow: auto; }
+   body.simple .expert, body:not(.simple) .simple-only { display: none !important; }
+   body.simple #export, body.simple #pending { display: none !important; }
+   body.simple #actions { position: static; border-radius: 22px; margin-bottom: 20px; }
+   @media (max-width: 760px) {
+      .step { padding: 12px; border-radius: 18px; }
+      #worlds, #groups { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      button.big { font-size: 16px; padding: 8px 12px; }
+      #qr svg { width: 180px; height: 180px; }
    }
 </style>
 <link rel="stylesheet" href="theme.css">
@@ -103,61 +160,97 @@
 <div id="main">
    <div id="empty" class="hint" data-t="empty">Choisissez un problème à gauche, ou créez-en un nouveau.</div>
    <div id="form" hidden>
-      <button id="tolist"></button>
-      <div class="row">
-         <div class="grow"><label for="title" data-t="title">Titre</label><input id="title" maxlength="60"></div>
-         <div><label for="color" data-t="category">Catégorie</label>
-            <select id="color">
-               <option value="blanche" data-t="blanche">Blanche (débutant)</option><option value="jaune" data-t="jaune">Jaune</option>
-               <option value="orange" data-t="orange">Orange</option><option value="vert" data-t="vert">Verte</option>
-            </select></div>
-         <div><label for="world" data-t="world">Monde</label><select id="world"></select></div>
+      <div class="formtop"><button id="tolist"></button><span class="grow"></span>
+         <button id="mode" data-tip="modeTip"></button></div>
+
+      <section class="step">
+         <h2><b>1</b><span data-t="stepName">Donne un nom à ton problème</span></h2>
+         <div class="row">
+            <div class="grow"><label for="title" data-t="title">Titre</label>
+               <div class="titlerow"><input id="title" maxlength="60"><button id="dice" data-tip="diceTip">🎲</button></div></div>
+            <div><label data-t="category">Catégorie</label><div class="tabs" id="colors"></div>
+               <select id="color" hidden>
+                  <option value="blanche" data-t="blanche">Blanche (débutant)</option><option value="jaune" data-t="jaune">Jaune</option>
+                  <option value="orange" data-t="orange">Orange</option><option value="vert" data-t="vert">Verte</option>
+               </select></div>
+         </div>
+      </section>
+
+      <section class="step">
+         <h2><b>2</b><span data-t="stepWorld">Choisis un monde</span></h2>
+         <div id="worlds"></div>
+         <select id="world" hidden></select>
+      </section>
+
+      <div id="versionbar">
+         <h2><span data-t="versions">Versions</span> <span class="hint expert" data-t="versionsHint">(du plus facile ★ au plus difficile ★★★★)</span></h2>
+         <div class="tabs" id="versions"></div>
+         <p class="hint simple-only" id="moreversions"></p>
       </div>
 
-      <h2><span data-t="versions">Versions</span> <span class="hint" data-t="versionsHint">(du plus facile ★ au plus difficile ★★★★)</span></h2>
-      <div class="tabs" id="versions"></div>
-
-      <div class="panel">
-         <label for="text" data-t="statement">Consigne (une phrase par ligne)</label>
-         <textarea id="text"></textarea>
-         <div class="row" style="margin-top:12px">
-            <div><label for="max" data-t="max">Nombre de blocs autorisés</label><input id="max" type="number" min="1" max="200" style="width:110px"></div>
-            <div><button id="delversion" class="danger" data-t="delVersion">Supprimer cette version</button></div>
+      <section class="step">
+         <h2><b>3</b><span data-t="stepGrid">Dessine le terrain</span></h2>
+         <div id="testbar">
+            <h3><span data-t="tests">Tests</span> <span class="hint" data-t="testsHint">(le même programme doit réussir tous les tests)</span></h3>
+            <div class="tabs" id="tests"></div>
          </div>
-         <h2><span data-t="tests">Tests</span> <span class="hint" data-t="testsHint">(le même programme doit réussir tous les tests)</span></h2>
-         <div class="tabs" id="tests"></div>
-         <div class="hint" data-t="dragHint">Glissez une pièce sur la grille, ou cliquez sur une pièce puis sur les cases. On peut aussi déplacer une pièce déjà posée.</div>
+         <div class="hint" data-t="dragHint">Glisse une pièce sur la grille, ou touche une pièce puis les cases. Tu peux aussi déplacer une pièce déjà posée.</div>
          <div id="palette"></div>
          <div class="row" id="countrow">
             <div><label for="count" data-t="count">Nombre écrit sur la prochaine pièce posée (poissons du filet, ou poissons demandés par l'île)</label>
                <input id="count" type="number" min="1" max="99" value="5" style="width:90px">
-               <span class="hint" data-t="countHint">Pour changer un nombre : tapez-le ici, puis cliquez de nouveau sur la case avec la même pièce.</span></div>
-         </div>
-         <div class="row size">
-            <div><label data-t="rows">Lignes</label><button data-size="rows,-1">−</button> <span id="nrows"></span> <button data-size="rows,1">＋</button></div>
-            <div><label data-t="cols">Colonnes</label><button data-size="cols,-1">−</button> <span id="ncols"></span> <button data-size="cols,1">＋</button></div>
+               <span class="hint" data-t="countHint">Pour changer un nombre : tape-le ici, puis touche de nouveau la case avec la même pièce.</span></div>
          </div>
          <div class="row" id="facing">
             <div><label data-t="facing">Le robot regarde vers</label>
                <button data-dir="0" data-t="dir0">→ l'est</button> <button data-dir="1" data-t="dir1">↓ le sud</button>
                <button data-dir="2" data-t="dir2">← l'ouest</button> <button data-dir="3" data-t="dir3">↑ le nord</button></div>
          </div>
-         <div id="grid"></div>
+         <div class="gridbox"><div id="grid"></div></div>
+         <div class="row size">
+            <div><label data-t="rows">Lignes</label><button data-size="rows,-1">−</button> <span id="nrows"></span> <button data-size="rows,1">＋</button></div>
+            <div><label data-t="cols">Colonnes</label><button data-size="cols,-1">−</button> <span id="ncols"></span> <button data-size="cols,1">＋</button></div>
+            <div><button id="cleargrid" data-t="clearGrid">🧽 Tout effacer</button></div>
+         </div>
+      </section>
 
-         <h2 data-t="blocks">Blocs que l'enfant peut utiliser</h2>
-         <div class="row"><button id="allblocks" data-t="allBlocks">Tout cocher</button> <button id="noblocks" data-t="noBlocks">Ne garder que les déplacements</button></div>
-         <div id="blocks"></div>
-      </div>
+      <section class="step">
+         <h2><b>4</b><span data-t="stepBlocks">Choisis les blocs</span></h2>
+         <p class="hint" data-t="blocksHint">Touche une famille de blocs pour la donner au joueur, ou pour la retirer.</p>
+         <div id="groups"></div>
+         <div class="row maxrow">
+            <div><label for="max" data-t="max">Nombre de blocs autorisés</label>
+               <button data-max="-1">−</button> <input id="max" type="number" min="1" max="200"> <button data-max="1">＋</button></div>
+         </div>
+         <div class="expert">
+            <h3 data-t="blocks">Blocs que le joueur peut utiliser</h3>
+            <div class="row"><button id="allblocks" data-t="allBlocks">Tout cocher</button> <button id="noblocks" data-t="noBlocks">Ne garder que les déplacements</button></div>
+            <div id="blocks"></div>
+         </div>
+      </section>
+
+      <section class="step">
+         <h2><b>5</b><span data-t="stepText">Écris la consigne</span></h2>
+         <label for="text" data-t="statement">Consigne (une phrase par ligne)</label>
+         <textarea id="text"></textarea>
+         <div class="row expert" style="margin-top:12px"><button id="delversion" class="danger" data-t="delVersion">Supprimer cette version</button></div>
+      </section>
 
       <div id="actions">
-      <div id="msg"></div>
-      <div id="sharebox" hidden><input id="sharelink" readonly style="width:100%"></div>
-      <div class="row">
-         <button class="main" id="save" data-t="save">Enregistrer</button>
-         <button id="try" data-t="try">▶ Essayer</button>
-         <button id="share" title="Envoyer un lien : on peut jouer au problème dans un navigateur ou dans l'application" data-t="share" data-tip="shareTip">🔗 Partager</button>
-         <button id="delete" class="danger" data-t="delete">Supprimer le problème</button>
-      </div>
+         <h2><b>6</b><span data-t="stepShare">Essaie, puis partage</span></h2>
+         <div id="tested"></div>
+         <div id="msg"></div>
+         <div id="sharebox" hidden>
+            <div class="sharelinkrow"><input id="sharelink" readonly><button id="copylink" data-t="copy">📋 Copier</button></div>
+            <p class="hint" id="qrnote"></p>
+            <div id="qr"></div>
+         </div>
+         <div class="row">
+            <button id="try" class="big try" data-t="try">▶ Essayer</button>
+            <button class="main big" id="save" data-t="save">Enregistrer</button>
+            <button id="share" class="big share" data-t="share" data-tip="shareTip">🔗 Partager</button>
+            <button id="delete" class="danger" data-t="delete">Supprimer le problème</button>
+         </div>
       </div>
    </div>
 </div>
@@ -170,6 +263,8 @@
 <script src="mes_problemes/data.js"></script>
 <script src="mes_problemes/store.js"></script>
 <script src="mes_problemes/share.js"></script>
+<script src="mes_problemes/qrcode.js"></script>
+<script src="rea.js"></script>
 <script>
 (function () {
    'use strict';
@@ -182,17 +277,17 @@
          pending: 'Des changements ne sont enregistrés que dans ce navigateur.',
          import: '📥 Ouvrir un problème reçu', importTip: 'Ouvrir un problème reçu par un lien',
          export: 'Exporter vers le dossier', exportTip: 'Écrit mes_problemes/data.js, pour le zip, git ou un autre PC',
-         home: '← Retour à l\'entraînement', empty: 'Choisissez un problème à gauche, ou créez-en un nouveau.',
+         home: '← Retour à l\'entraînement', empty: 'Choisis un problème à gauche, ou crée un nouveau problème.',
          title: 'Titre', category: 'Catégorie', blanche: 'Blanche (débutant)', jaune: 'Jaune', orange: 'Orange', vert: 'Verte',
          world: 'Monde', versions: 'Versions', versionsHint: '(du plus facile ★ au plus difficile ★★★★)',
          statement: 'Consigne (une phrase par ligne)', max: 'Nombre de blocs autorisés', delVersion: 'Supprimer cette version',
          tests: 'Tests', testsHint: '(le même programme doit réussir tous les tests)',
-         dragHint: 'Glissez une pièce sur la grille, ou cliquez sur une pièce puis sur les cases. On peut aussi déplacer une pièce déjà posée.',
+         dragHint: 'Glisse une pièce sur la grille, ou touche une pièce puis les cases. Tu peux aussi déplacer une pièce déjà posée.',
          count: 'Nombre écrit sur la prochaine pièce posée (poissons du filet, ou poissons demandés par l\'île)',
-         countHint: 'Pour changer un nombre : tapez-le ici, puis cliquez de nouveau sur la case avec la même pièce.',
+         countHint: 'Pour changer un nombre : tape-le ici, puis touche de nouveau la case avec la même pièce.',
          rows: 'Lignes', cols: 'Colonnes', facing: 'Le robot regarde vers',
          dir0: '→ l\'est', dir1: '↓ le sud', dir2: '← l\'ouest', dir3: '↑ le nord',
-         blocks: 'Blocs que l\'enfant peut utiliser', allBlocks: 'Tout cocher', noBlocks: 'Ne garder que les déplacements',
+         blocks: 'Blocs que le joueur peut utiliser, un par un', allBlocks: 'Tout cocher', noBlocks: 'Ne garder que les déplacements',
          save: 'Enregistrer', try: '▶ Essayer', share: '🔗 Partager',
          shareTip: 'Envoyer un lien : on peut jouer au problème dans un navigateur ou dans l\'application',
          delete: 'Supprimer le problème', closeTry: '← Revenir à l\'éditeur', tryFrame: 'Essai',
@@ -201,15 +296,15 @@
          all: 'tout', none: 'rien', checkAll: 'Cocher tous les blocs « {name} »', uncheckAll: 'Décocher tous les blocs « {name} »',
          test: 'Test {n}', addTest: '＋ test', addTestTip: 'Ajouter un test (copie de celui-ci)', delTest: 'Supprimer ce test',
          robot: 'Robot', newTitle: 'Nouveau problème',
-         needTitle: 'Donnez un titre au problème.', versionName: 'Version {stars}', testName: '{version}, test {n} : ',
-         needMax: '{version} : indiquez le nombre de blocs autorisés.',
-         needMove: '{version} : cochez au moins un bloc pour avancer.',
-         needBlock: '{version} : cochez le bloc « {block} ».',
-         needRobot: 'posez le robot sur la grille.', needOne: 'il faut exactement une pièce « {piece} ».',
+         needTitle: 'Donne un nom à ton problème.', versionName: 'Version {stars}', testName: '{version}, test {n} : ',
+         needMax: '{version} : indique le nombre de blocs autorisés.',
+         needMove: '{version} : donne au joueur au moins un bloc pour avancer.',
+         needBlock: '{version} : donne au joueur le bloc « {block} ».',
+         needRobot: 'pose le robot sur la grille.', needOne: 'il faut exactement une pièce « {piece} ».',
          needSome: 'il faut au moins une pièce « {piece} ».',
          notEnough: 'il n\'y a pas assez de {what} : {have} pour {want} demandés.',
          needEnough: 'il faut au moins autant de « {a} » que de « {b} ».',
-         saved: 'Enregistré. Le problème est dans l\'entraînement, sous « Mes problèmes ».',
+         saved: 'Enregistré ! Ton problème est dans l\'entraînement, sous « Mes problèmes ».',
          noDraft: 'Ce navigateur refuse de garder le brouillon : l\'essai est impossible.',
          tryTitle: '{title} — essai (rien n\'est enregistré)', confirmDelete: 'Supprimer « {title} » ?',
          copied: 'Lien copié : colle-le dans un message.', sent: 'Lien envoyé.', shown: 'Voici le lien à envoyer :',
@@ -218,7 +313,27 @@
          unreadable: 'Ce lien ne contient pas de problème lisible ({why}).',
          exported: 'Exporté dans data.js.',
          downloaded: 'Fichier data.js téléchargé : placez-le dans le dossier mes_problemes (remplacez l\'ancien).',
-         wrongFile: 'Le fichier doit s\'appeler data.js, dans le dossier mes_problemes.'
+         wrongFile: 'Le fichier doit s\'appeler data.js, dans le dossier mes_problemes.',
+         modeSimple: '🧒 Mode simple', modeFull: '🛠️ Mode complet',
+         modeTip: 'Le mode simple montre l\'essentiel ; le mode complet montre tout (versions, tests, chaque bloc)',
+         stepName: 'Donne un nom à ton problème', stepWorld: 'Choisis un monde', stepGrid: 'Dessine le terrain',
+         stepBlocks: 'Choisis les blocs', stepText: 'Écris la consigne', stepShare: 'Essaie, puis partage',
+         diceTip: 'Trouve-moi un nom', clearGrid: '🧽 Tout effacer',
+         blocksHint: 'Touche une famille de blocs pour la donner au joueur, ou pour la retirer.',
+         groupActions: 'Actions du robot', groupSensors: 'Ce que le robot voit', always: 'toujours là',
+         funTitles: ['La grande aventure', 'Le robot perdu', 'Le chemin secret', 'Le labyrinthe magique', 'La mission impossible',
+            'Le défi du jour', 'Le trésor caché', 'Attention aux pièges !', 'Le grand voyage', 'Vite, vite, robot !'],
+         moreVersions: 'Ce problème a {n} versions. Le mode complet les montre toutes.',
+         testedNone: 'Essaie ton problème et réussis-le : tes amis sauront qu\'il est possible !',
+         testedSome: 'Tu as réussi {done} version(s) sur {all}. Essaie les autres !',
+         testedAll: '✅ Tu as réussi ton problème : il est prêt à être partagé !',
+         wonTrial: 'Bravo, tu as réussi ton problème ! Enregistre-le, puis partage-le avec un ami.',
+         shareUntested: 'Tu n\'as pas encore réussi ton problème. Le partager quand même ?',
+         qrNote: 'Ton ami peut aussi scanner ce code avec l\'appareil photo de son téléphone :',
+         qrTooBig: 'Ce problème est trop grand pour un code à scanner : envoie le lien.',
+         copy: '📋 Copier', copiedShort: 'Copié !',
+         welcome: 'Invente ton propre problème ! Choisis un monde, dessine le terrain, puis partage-le avec un ami.',
+         newWorld: 'Super, le monde « {name} » ! Pose maintenant le robot et les pièces sur la grille.'
       },
       en: {
          unsaved: 'The changes to this problem are not saved. Go back to the list anyway?',
@@ -236,7 +351,7 @@
          countHint: 'To change a number: type it here, then click the cell again with the same piece.',
          rows: 'Rows', cols: 'Columns', facing: 'The robot is facing',
          dir0: '→ right', dir1: '↓ down', dir2: '← left', dir3: '↑ up',
-         blocks: 'Blocks the child can use', allBlocks: 'Tick all', noBlocks: 'Keep only the moves',
+         blocks: 'Blocks the player can use, one by one', allBlocks: 'Tick all', noBlocks: 'Keep only the moves',
          save: 'Save', try: '▶ Try it', share: '🔗 Share',
          shareTip: 'Send a link: the problem can be played in a browser or in the app',
          delete: 'Delete the problem', closeTry: '← Back to the editor', tryFrame: 'Trial',
@@ -247,8 +362,8 @@
          robot: 'Robot', newTitle: 'New problem',
          needTitle: 'Give the problem a title.', versionName: 'Version {stars}', testName: '{version}, test {n}: ',
          needMax: '{version}: enter the number of blocks allowed.',
-         needMove: '{version}: tick at least one block to move.',
-         needBlock: '{version}: tick the “{block}” block.',
+         needMove: '{version}: give the player at least one block to move.',
+         needBlock: '{version}: give the player the “{block}” block.',
          needRobot: 'put the robot on the grid.', needOne: 'there must be exactly one “{piece}” piece.',
          needSome: 'there must be at least one “{piece}” piece.',
          notEnough: 'there are not enough {what}: {have} for {want} asked for.',
@@ -262,7 +377,27 @@
          unreadable: 'This link does not contain a problem that can be read ({why}).',
          exported: 'Exported to data.js.',
          downloaded: 'File data.js downloaded: put it in the mes_problemes folder (replace the old one).',
-         wrongFile: 'The file must be called data.js, in the mes_problemes folder.'
+         wrongFile: 'The file must be called data.js, in the mes_problemes folder.',
+         modeSimple: '🧒 Simple mode', modeFull: '🛠️ Full mode',
+         modeTip: 'Simple mode shows the essentials; full mode shows everything (versions, tests, each block)',
+         stepName: 'Give your problem a name', stepWorld: 'Choose a world', stepGrid: 'Draw the ground',
+         stepBlocks: 'Choose the blocks', stepText: 'Write the instructions', stepShare: 'Try it, then share it',
+         diceTip: 'Find me a name', clearGrid: '🧽 Clear everything',
+         blocksHint: 'Tap a family of blocks to give it to the player, or to take it away.',
+         groupActions: 'Robot actions', groupSensors: 'What the robot sees', always: 'always there',
+         funTitles: ['The great adventure', 'The lost robot', 'The secret path', 'The magic maze', 'Mission impossible',
+            'Today\'s challenge', 'The hidden treasure', 'Watch out for traps!', 'The long journey', 'Quick, quick, robot!'],
+         moreVersions: 'This problem has {n} versions. Full mode shows them all.',
+         testedNone: 'Try your problem and solve it: your friends will know it can be done!',
+         testedSome: 'You solved {done} version(s) out of {all}. Try the others!',
+         testedAll: '✅ You solved your problem: it is ready to share!',
+         wonTrial: 'Well done, you solved your problem! Save it, then share it with a friend.',
+         shareUntested: 'You have not solved your problem yet. Share it anyway?',
+         qrNote: 'Your friend can also scan this code with their phone\'s camera:',
+         qrTooBig: 'This problem is too big for a code to scan: send the link.',
+         copy: '📋 Copy', copiedShort: 'Copied!',
+         welcome: 'Make up your own problem! Choose a world, draw the ground, then share it with a friend.',
+         newWorld: 'Great, the “{name}” world! Now put the robot and the pieces on the grid.'
       },
       vi: {
          unsaved: 'Những thay đổi của bài này chưa được lưu. Vẫn quay lại danh sách?',
@@ -280,7 +415,7 @@
          countHint: 'Để đổi một số: gõ số đó vào đây, rồi bấm lại vào ô với cùng một vật.',
          rows: 'Hàng', cols: 'Cột', facing: 'Rô-bốt nhìn về phía',
          dir0: '→ bên phải', dir1: '↓ bên dưới', dir2: '← bên trái', dir3: '↑ bên trên',
-         blocks: 'Các khối lệnh bạn nhỏ được dùng', allBlocks: 'Chọn tất cả', noBlocks: 'Chỉ giữ các khối di chuyển',
+         blocks: 'Các khối lệnh người chơi được dùng, từng khối một', allBlocks: 'Chọn tất cả', noBlocks: 'Chỉ giữ các khối di chuyển',
          save: 'Lưu', try: '▶ Thử', share: '🔗 Chia sẻ',
          shareTip: 'Gửi một đường link: có thể chơi bài này trong trình duyệt hoặc trong ứng dụng',
          delete: 'Xóa bài', closeTry: '← Quay lại trình soạn', tryFrame: 'Chơi thử',
@@ -291,8 +426,8 @@
          robot: 'Rô-bốt', newTitle: 'Bài mới',
          needTitle: 'Hãy đặt tên cho bài.', versionName: 'Mức {stars}', testName: '{version}, kiểm tra {n}: ',
          needMax: '{version}: hãy nhập số khối lệnh được dùng.',
-         needMove: '{version}: hãy chọn ít nhất một khối để di chuyển.',
-         needBlock: '{version}: hãy chọn khối “{block}”.',
+         needMove: '{version}: hãy cho người chơi ít nhất một khối để di chuyển.',
+         needBlock: '{version}: hãy cho người chơi khối “{block}”.',
          needRobot: 'hãy đặt rô-bốt lên lưới.', needOne: 'cần đúng một “{piece}”.',
          needSome: 'cần ít nhất một “{piece}”.',
          notEnough: 'chưa đủ {what}: có {have}, cần {want}.',
@@ -306,7 +441,27 @@
          unreadable: 'Đường link này không có bài nào đọc được ({why}).',
          exported: 'Đã xuất ra data.js.',
          downloaded: 'Đã tải tệp data.js: hãy đặt tệp vào thư mục mes_problemes (thay tệp cũ).',
-         wrongFile: 'Tệp phải có tên data.js, trong thư mục mes_problemes.'
+         wrongFile: 'Tệp phải có tên data.js, trong thư mục mes_problemes.',
+         modeSimple: '🧒 Chế độ đơn giản', modeFull: '🛠️ Chế độ đầy đủ',
+         modeTip: 'Chế độ đơn giản chỉ hiện những gì cần thiết; chế độ đầy đủ hiện tất cả (các mức, bài kiểm tra, từng khối)',
+         stepName: 'Đặt tên cho bài của em', stepWorld: 'Chọn một thế giới', stepGrid: 'Vẽ khu vực chơi',
+         stepBlocks: 'Chọn các khối lệnh', stepText: 'Viết đề bài', stepShare: 'Chơi thử, rồi chia sẻ',
+         diceTip: 'Gợi ý cho mình một cái tên', clearGrid: '🧽 Xóa hết',
+         blocksHint: 'Chạm vào một nhóm khối để cho người chơi dùng, hoặc để bỏ đi.',
+         groupActions: 'Hành động của rô-bốt', groupSensors: 'Những gì rô-bốt nhìn thấy', always: 'luôn có',
+         funTitles: ['Cuộc phiêu lưu lớn', 'Rô-bốt bị lạc', 'Con đường bí mật', 'Mê cung kỳ diệu', 'Nhiệm vụ bất khả thi',
+            'Thử thách hôm nay', 'Kho báu bị giấu', 'Cẩn thận bẫy nhé!', 'Chuyến đi dài', 'Nhanh lên, rô-bốt!'],
+         moreVersions: 'Bài này có {n} mức. Chế độ đầy đủ hiện tất cả các mức.',
+         testedNone: 'Hãy chơi thử và giải được bài của em: bạn bè sẽ biết bài này làm được!',
+         testedSome: 'Em đã giải được {done} trên {all} mức. Thử các mức còn lại nhé!',
+         testedAll: '✅ Em đã giải được bài của mình: bài đã sẵn sàng để chia sẻ!',
+         wonTrial: 'Giỏi lắm, em đã giải được bài của mình! Hãy lưu lại, rồi chia sẻ với một người bạn.',
+         shareUntested: 'Em chưa giải được bài của mình. Vẫn chia sẻ chứ?',
+         qrNote: 'Bạn của em cũng có thể quét mã này bằng máy ảnh của điện thoại:',
+         qrTooBig: 'Bài này quá lớn để làm mã quét: hãy gửi đường link.',
+         copy: '📋 Sao chép', copiedShort: 'Đã sao chép!',
+         welcome: 'Hãy tự nghĩ ra một bài! Chọn một thế giới, vẽ khu vực chơi, rồi chia sẻ với một người bạn.',
+         newWorld: 'Tuyệt, thế giới “{name}”! Bây giờ hãy đặt rô-bốt và các vật lên lưới.'
       }
    });
    function f(key, args) { return L.fmt(T[key], args || {}); }
@@ -327,7 +482,62 @@
    function version() { return current.versions[iVersion]; }
    function test() { return version().tests[iTest]; }
    function img(name) { return 'url("mes_problemes/' + world().images + '/' + name + '")'; }
-   function say(text, kind) { $('msg').textContent = text || ''; $('msg').className = kind || ''; $('sharebox').hidden = true; }
+   function say(text, kind) {
+      $('msg').textContent = text || ''; $('msg').className = kind || ''; $('sharebox').hidden = true;
+      // in simple mode Réa says it too, where the child is looking
+      if (text && simple() && window.Rea) {
+         var b = document.createElement('b'); b.textContent = text;
+         Rea.say(kind === 'bad' ? b.innerHTML : '<b>' + b.innerHTML + '</b>', { mood: kind === 'bad' ? 'think' : 'happy' });
+         if (kind === 'bad') { Rea.sound('fail'); }
+      }
+   }
+
+   /* ---------- simple mode (for children) and full mode; Réa's sounds follow the trainer's profile ---------- */
+   var MODE_KEY = 'algoreaEditor.mode';
+   var profile = {};
+   try {
+      var trainer = JSON.parse(localStorage.getItem('algoreaTrainer.v1')) || {};
+      profile = (trainer.profiles || {})[trainer.current] || {};
+   } catch (e) { /* no trainer data */ }
+   if (window.Rea) { Rea.sounds = profile.sounds !== undefined ? !!profile.sounds : profile.age !== 'grand'; }
+   function simple() { return document.body.classList.contains('simple'); }
+   function setMode(isSimple, remember) {
+      document.body.classList.toggle('simple', isSimple);
+      $('mode').textContent = isSimple ? T.modeFull : T.modeSimple;
+      if (remember) { try { localStorage.setItem(MODE_KEY, isSimple ? 'simple' : 'full'); } catch (e) { /* storage off */ } }
+      if (current) { render(); }
+   }
+   var savedMode = null;
+   try { savedMode = localStorage.getItem(MODE_KEY); } catch (e) { /* storage off */ }
+   setMode(savedMode ? savedMode === 'simple' : profile.age !== 'grand', false);
+   $('mode').onclick = function () { setMode(!simple(), true); };
+
+   /* ---------- "you solved your own problem": the trial frame reports its score (bridge.js) ---------- */
+   var trialSig = null, solved = {};   // the problem as it was tried, and the levels solved in that trial
+   // what a trial depends on: the world, grids, blocks and limits (not the title or the sentences)
+   function signature() {
+      return JSON.stringify([current.world, current.versions.map(function (v) {
+         return [v.stars, v.max, v.blocks, v.tests];
+      })]);
+   }
+   function solvedNow() {
+      if (!current || trialSig !== signature()) { return 0; }
+      return current.versions.filter(function (v) { return solved[C.levelOf(v)]; }).length;
+   }
+   function renderTested() {
+      var done = solvedNow(), all = current.versions.length;
+      $('tested').textContent = done >= all ? T.testedAll : done ? f('testedSome', { done: done, all: all }) : T.testedNone;
+      $('tested').className = done >= all ? 'ok' : '';
+   }
+   window.addEventListener('message', function (event) {
+      var msg = event.data;
+      if (!msg || msg.source !== 'algorea-task' || msg.type !== 'score' || event.source !== $('tryframe').contentWindow) { return; }
+      if (!msg.maxScores || !msg.level || msg.score < msg.maxScores[msg.level] || solved[msg.level]) { return; }
+      solved[msg.level] = true;
+      renderTested();
+      if (window.Rea) { Rea.sound('win'); Rea.confetti(); }
+      if (solvedNow() >= current.versions.length && window.Rea) { Rea.say(T.wonTrial, { mood: 'happy', ms: 8000 }); }
+   });
 
    // the usual way to move in this world (no "reculer": children rarely need it)
    function defaultMoves() { return C.moves(current.world).filter(function (b) { return b !== 'backwards'; }); }
@@ -398,14 +608,92 @@
    $('tolist').onclick = function () { closeForm(true); };
 
    /* ---------- form ---------- */
+   var WORLD_ICONS = { course: '🚩', marbles: '🔮', paint: '🎨', fishing: '🐟', sokoban: '📦', flowers: '🌷', gems: '💎' };
+   var GROUP_ICONS = ['🔁', '🚦', '🔢', '📦', '🧩', '📋'];
+
+   function renderColors() {
+      var box = $('colors');
+      box.innerHTML = '';
+      ['blanche', 'jaune', 'orange', 'vert'].forEach(function (c) {
+         var b = document.createElement('button');
+         b.className = (current.color || 'blanche') === c ? 'on' : '';
+         b.innerHTML = '<i style="background:var(--' + c + ')"></i>';
+         b.appendChild(document.createTextNode(T[c]));
+         b.onclick = function () { current.color = c; $('color').value = c; renderColors(); };
+         box.appendChild(b);
+      });
+   }
+
+   // the worlds as big cards: a picture of the robot, the name and the goal
+   function renderWorlds() {
+      var box = $('worlds');
+      box.innerHTML = '';
+      Object.keys(C.WORLDS).forEach(function (w) {
+         var W = C.WORLDS[w], b = document.createElement('button');
+         b.className = current.world === w ? 'on' : '';
+         b.innerHTML = '<span class="pic"></span><b></b><small></small>';
+         var pic = b.firstChild;
+         pic.style.backgroundImage = 'url("mes_problemes/' + W.images + '/' + W.robot + '.png")';
+         pic.style.backgroundSize = W.turns ? '900% auto' : 'contain';
+         pic.style.backgroundPosition = W.turns ? 'left center' : 'center';
+         b.querySelector('b').textContent = (WORLD_ICONS[w] ? WORLD_ICONS[w] + ' ' : '') + W.name;
+         b.querySelector('small').textContent = W.goal;
+         b.onclick = function () {
+            if (current.world === w) { return; }
+            $('world').value = w;
+            $('world').onchange();
+            if (simple() && window.Rea) { Rea.say(f('newWorld', { name: W.name })); Rea.sound('snap'); }
+         };
+         box.appendChild(b);
+      });
+   }
+
+   // the blocks by family: one tile gives or takes away a whole menu
+   function renderGroups(v, every) {
+      var box = $('groups');
+      box.innerHTML = '';
+      var keep = C.moves(current.world).concat(world().rules.blocks || []);   // the robot always moves
+      var families = [{ name: T.groupActions, icon: '🦾', blocks: world().actions },
+                      { name: T.groupSensors, icon: '👀', blocks: world().sensors }]
+         .concat(C.GROUPS.map(function (g, i) { return { name: g.name, icon: GROUP_ICONS[i] || '🧱', blocks: g.blocks }; }));
+      families.forEach(function (fam) {
+         if (!fam.blocks || !fam.blocks.length) { return; }
+         var names = fam.blocks.map(function (b) { return b[0]; });
+         var free = names.filter(function (n) { return keep.indexOf(n) < 0; });
+         var on = !free.length || free.some(function (n) { return v.blocks.indexOf(n) >= 0; });
+         var b = document.createElement('button');
+         b.className = on ? 'on' : '';
+         b.innerHTML = '<span class="gicon"></span><b></b><small></small><span class="tick"></span>';
+         b.querySelector('.gicon').textContent = fam.icon;
+         b.querySelector('b').textContent = fam.name;
+         b.querySelector('.tick').textContent = on ? '✔' : '';
+         b.querySelector('small').textContent = free.length ? fam.blocks.slice(0, 3).map(function (x) { return x[1]; }).join(' · ') : T.always;
+         if (!free.length) { b.disabled = true; }
+         b.onclick = function () {
+            var wanted = v.blocks.filter(function (n) { return free.indexOf(n) < 0; });
+            v.blocks = every.filter(function (n) { return (on ? wanted : wanted.concat(free)).indexOf(n) >= 0; });
+            delete v.solution;
+            if (window.Rea) { Rea.sound('snap'); }
+            render();
+         };
+         box.appendChild(b);
+      });
+   }
+
    function render() {
       $('title').value = current.title;
       $('color').value = current.color || 'blanche';
+      renderColors();
       $('world').innerHTML = Object.keys(C.WORLDS).map(function (w) {
          return '<option value="' + w + '">' + f('worldOption', { name: C.WORLDS[w].name, goal: C.WORLDS[w].goal }) + '</option>';
       }).join('');
       $('world').value = current.world;
+      renderWorlds();
       current.versions.sort(function (a, b) { return a.stars - b.stars; });
+      // simple mode: one version (the first), unless the problem already has more
+      if (simple() && current.versions.length < 2) { iVersion = 0; }
+      $('versionbar').hidden = simple() && current.versions.length < 2;
+      $('moreversions').textContent = current.versions.length > 1 ? f('moreVersions', { n: current.versions.length }) : '';
 
       var tabs = $('versions');
       tabs.innerHTML = '';
@@ -417,7 +705,7 @@
          tabs.appendChild(b);
       });
       [1, 2, 3, 4].forEach(function (stars) {
-         if (current.versions.some(function (v) { return v.stars === stars; })) { return; }
+         if (simple() || current.versions.some(function (v) { return v.stars === stars; })) { return; }
          var b = document.createElement('button');
          b.textContent = '＋ ' + '★'.repeat(stars);
          b.title = T.addVersion;
@@ -443,6 +731,7 @@
       var checks = $('blocks');
       checks.innerHTML = '';
       var every = world().blocks.concat(C.COMMON).map(function (x) { return x[0]; });
+      renderGroups(v, every);
       function setBlocks(wanted) {
          // kept in the order of the menus, whatever the order of the clicks
          v.blocks = every.filter(function (name) { return wanted.indexOf(name) >= 0; });
@@ -513,8 +802,10 @@
          b.className = Number(b.dataset.dir) === (test().robot.dir || 0) ? 'on' : '';
       });
       $('countrow').hidden = !world().pieces.some(function (p) { return p.counted; });
+      $('testbar').hidden = simple() && v.tests.length < 2;
       renderPalette();
       renderGrid();
+      renderTested();
    }
 
    /* ---------- palette and grid ---------- */
@@ -696,8 +987,30 @@
       current = { world: 'course' };
       open({ id: '', title: T.newTitle, color: 'blanche', world: 'course', versions: [newVersion(1)] });
       render();
+      if (simple() && window.Rea) { Rea.say(T.welcome, { ms: 9000 }); }
+      $('title').select();
    };
    $('title').oninput = function () { current.title = $('title').value; };
+   $('dice').onclick = function () {
+      var list = T.funTitles.filter(function (t) { return t !== current.title; });
+      current.title = list[Math.floor(Math.random() * list.length)];
+      $('title').value = current.title;
+      if (window.Rea) { Rea.sound('snap'); }
+   };
+   $('cleargrid').onclick = function () {
+      var t = test();
+      t.tiles = t.tiles.map(function (l) { return l.map(function () { return 1; }); });
+      t.counts = {};
+      delete version().solution;
+      renderGrid();
+   };
+   document.querySelectorAll('[data-max]').forEach(function (b) {
+      b.onclick = function () {
+         version().max = Math.max(1, Math.min(200, (Number($('max').value) || 1) + Number(b.dataset.max)));
+         $('max').value = version().max;
+         delete version().solution;
+      };
+   });
    $('color').onchange = function () { current.color = $('color').value; };
    $('world').onchange = function () {
       var before = f('defaultText', { goal: world().goal });
@@ -755,6 +1068,7 @@
       C.save(JSON.parse(JSON.stringify(current)));
       renderList();
       say(T.saved, 'good');
+      if (window.Rea) { Rea.sound('star'); }
    };
 
    $('try').onclick = function () {
@@ -762,11 +1076,12 @@
       if (bad) { say(bad, 'bad'); return; }
       try { localStorage.setItem('algoreaDraft', JSON.stringify(current)); }
       catch (e) { say(T.noDraft, 'bad'); return; }
+      if (trialSig !== signature()) { trialSig = signature(); solved = {}; }
       $('trytitle').textContent = f('tryTitle', { title: current.title });
       $('tryframe').src = 'mes_problemes/task.html?draft=1&t=' + Date.now();
       $('veil').hidden = false;
    };
-   $('closetry').onclick = function () { $('veil').hidden = true; $('tryframe').src = 'about:blank'; };
+   $('closetry').onclick = function () { $('veil').hidden = true; $('tryframe').src = 'about:blank'; renderTested(); };
 
    $('delete').onclick = function () {
       if (!current.id) { closeForm(false); return; }
@@ -775,16 +1090,40 @@
       closeForm(false);
    };
 
+   // the link as a QR code, for a friend standing next to you (qrcode.js, MIT licence)
+   function showQr(url) {
+      $('qr').innerHTML = '';
+      $('qrnote').textContent = T.qrNote;
+      try {
+         var qr = qrcode(0, 'L');
+         qr.addData(url);
+         qr.make();
+         $('qr').innerHTML = qr.createSvgTag({ cellSize: 4, margin: 3, scalable: true });
+      } catch (e) { $('qrnote').textContent = T.qrTooBig; }
+   }
    $('share').onclick = function () {
       var bad = problemsFound();
       if (bad) { say(bad, 'bad'); return; }
+      if (solvedNow() < current.versions.length && !confirm(T.shareUntested)) { return; }
       window.AlgoreaShare.link(current).then(function (url) {
-         return window.AlgoreaShare.send(current.title, url).then(function (how) {
+         // the box is filled first: in the application the share sheet covers the page
+         function show(how) {
             say(how === 'copied' ? T.copied : how === 'shared' ? T.sent : T.shown, 'good');
             $('sharelink').value = url;
+            showQr(url);
             $('sharebox').hidden = false;
+         }
+         return window.AlgoreaShare.send(current.title, url).then(show, function (e) {
+            if (e.name === 'AbortError') { show('shown'); return; }
+            throw e;
          });
-      }).catch(function (e) { if (e.name !== 'AbortError') { say(f('shareFailed', { why: e.message }), 'bad'); } });
+      }).catch(function (e) { say(f('shareFailed', { why: e.message }), 'bad'); });
+   };
+   $('copylink').onclick = function () {
+      var url = $('sharelink').value;
+      function done() { $('copylink').textContent = T.copiedShort; setTimeout(function () { $('copylink').textContent = T.copy; }, 1500); }
+      if (navigator.clipboard && navigator.clipboard.writeText) { navigator.clipboard.writeText(url).then(done, function () { $('sharelink').select(); }); }
+      else { $('sharelink').select(); try { document.execCommand('copy'); done(); } catch (e) { /* select is enough */ } }
    };
 
    $('import').onclick = function () {

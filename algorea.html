@@ -939,6 +939,13 @@
       pl.className = 'parentlink';
       pl.innerHTML = '<button id="parents">' + esc(P.link) + '</button>';
       pl.firstChild.onclick = function () { askParent(showParents); };
+      // in the application: the installed version, to check that an update went in
+      if (window.AndroidBridge && AndroidBridge.appVersion) {
+         var v = document.createElement('small');
+         v.textContent = 'Algorea Block ' + AndroidBridge.appVersion();
+         pl.appendChild(document.createElement('br'));
+         pl.appendChild(v);
+      }
       $('list').appendChild(pl);
    }
 
