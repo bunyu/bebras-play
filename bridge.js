@@ -26,7 +26,7 @@
       var helper = task.displayedSubTask.blocklyHelper, ws = helper && helper.workspace;
       if (!ws || !ws.setScale || ws.scale <= SMALL_SCALE + 0.01) { return; }
       ws.setScale(SMALL_SCALE);
-      var flyout = ws.getFlyout && ws.getFlyout();
+      var flyout = ws.flyout_ || (ws.getFlyout && ws.getFlyout());
       if (flyout && flyout.reflow) { flyout.reflow(); }
    }, 700);
 
@@ -41,6 +41,162 @@
       helper.setReadOnly = function () { return setReadOnly.call(this, false); };
       if (helper.readOnly) { setReadOnly.call(helper, false); }
    }, 300);
+
+   /* ---------- phone layout: one view to build and run, parts the child can resize ---------- */
+   // The run view already holds the grid and an editable program, so the separate editor view is
+   // dropped (task-mobile.css hides its button): a task that would open it opens the run view.
+   // Two handles resize the parts: between the grid and the program (up / down), and on the right
+   // edge of the list of blocks (left / right: smaller or bigger blocks in the list). The sizes are
+   // kept for every task (localStorage "algoreaTaskLayout").
+   var LAYOUT_KEY = 'algoreaTaskLayout';
+   var layout = {};
+   try { layout = JSON.parse(localStorage.getItem(LAYOUT_KEY)) || {}; } catch (e) { /* storage off */ }
+   function saveLayout() { try { localStorage.setItem(LAYOUT_KEY, JSON.stringify(layout)); } catch (e) { /* storage off */ } }
+   // the phone layout: the bottom bar switches views (on a computer everything is on one screen)
+   function phone() {
+      var b = document.getElementById('mode-instructions');
+      return !!(b && b.offsetParent && getComputedStyle(b).visibility !== 'hidden');   // hidden, not removed, on a computer
+   }
+   function clamp(x, lo, hi) { return Math.max(lo, Math.min(hi, x)); }
+   function workspace() {
+      var helper = window.task && task.displayedSubTask && task.displayedSubTask.blocklyHelper;
+      return helper && helper.workspace;
+   }
+
+   var modeWait = setInterval(function () {
+      var qi = window.quickAlgoInterface;
+      if (!qi || !qi.selectMode) { return; }
+      clearInterval(modeWait);
+      var select = qi.selectMode;
+      qi.selectMode = function (mode) {
+         if (mode === 'mode-editor' && phone()) { mode = 'mode-player'; }
+         var result = select.call(this, mode);
+         setTimeout(placeGrips, 60);
+         return result;
+      };
+      if (qi.curMode === 'mode-editor' && phone()) { qi.selectMode('mode-player'); }
+   }, 200);
+
+   // the list of blocks gets its own scale: a share of the program's (Blockly gives both the same)
+   function listScale() {
+      return layout.list || (phone() && !config.bigBlocks ? 0.8 : 1);
+   }
+   var flyoutWait = setInterval(function () {
+      if (!window.Blockly || !Blockly.Flyout) { return; }
+      clearInterval(flyoutWait);
+      var P = Blockly.Flyout.prototype;
+      ['layout_', 'reflowVertical'].forEach(function (name) {
+         var original = P[name];
+         if (!original) { return; }
+         P[name] = function () {
+            if (this.horizontalLayout_) { return original.apply(this, arguments); }
+            var target = this.targetWorkspace_, scale = target.scale;
+            target.scale = scale * listScale();
+            try { return original.apply(this, arguments); }
+            finally {
+               target.scale = scale;
+               if (name === 'reflowVertical') { target.resize(); setTimeout(placeGrips, 0); }
+            }
+         };
+      });
+      refreshList();
+   }, 100);
+   // draws the list again at its scale (the blocks are laid out when the list is shown)
+   function refreshList() {
+      var ws = workspace(), flyout = ws && ws.flyout_;
+      // a list opened from a menu (categories) is laid out again each time it opens
+      if (!flyout || ws.toolbox_ || !flyout.isVisible || !flyout.isVisible()) { return; }
+      var blocks = ws.options && ws.options.languageTree;
+      if (blocks && blocks.childNodes) { flyout.show(blocks.childNodes); } else { flyout.reflow(); }
+      placeGrips();
+   }
+
+   // the two handles
+   function grip(id, title) {
+      var g = document.getElementById(id);
+      if (!g) {
+         g = document.createElement('div');
+         g.id = id;
+         g.className = 'algoreaGrip';
+         g.title = title;
+         g.innerHTML = '<span></span>';
+      }
+      return g;
+   }
+   function placeGrips() {
+      var content = document.getElementById('taskContent'), lib = document.getElementById('blocklyLibContent');
+      var container = document.getElementById('blocklyContainer'), ws = workspace();
+      if (!content || !lib || !container || !ws) { return; }
+      if (layout.grid) { setGridShare(layout.grid); }
+      var split = grip('algoreaSplit', 'Glisser pour agrandir la grille ou le programme');
+      if (split.parentNode !== content) { content.insertBefore(split, lib); dragY(split); }
+      var side = grip('algoreaListGrip', 'Glisser pour changer la taille de la liste des blocs');
+      if (side.parentNode !== container) { container.appendChild(side); dragX(side); }
+      var flyout = ws.flyout_;
+      side.hidden = !flyout || ws.toolbox_ || !flyout.isVisible || !flyout.isVisible();
+      if (!side.hidden && !side.classList.contains('dragging')) { side.style.left = flyout.width_ + 'px'; }
+   }
+   addEventListener('resize', function () { setTimeout(placeGrips, 100); });
+   setInterval(placeGrips, 1000);   // the engine may build the workspace (or build it again) later
+
+   function onDrag(el, move, end) {
+      el.addEventListener('pointerdown', function (e) {
+         e.preventDefault();
+         el.setPointerCapture(e.pointerId);
+         el.classList.add('dragging');
+         function up(ev) {
+            el.removeEventListener('pointermove', move);
+            el.removeEventListener('pointerup', up);
+            el.removeEventListener('pointercancel', up);
+            el.classList.remove('dragging');
+            end(ev);
+         }
+         el.addEventListener('pointermove', move);
+         el.addEventListener('pointerup', up);
+         el.addEventListener('pointercancel', up);
+      });
+   }
+   // up / down: the share of the height for the grid (15 % to 75 %)
+   function setGridShare(pct) { document.getElementById('task').style.setProperty('--algorea-grid', pct + '%'); }
+   var resizing = 0;
+   function dragY(el) {
+      onDrag(el, function (e) {
+         var box = document.getElementById('taskContent').getBoundingClientRect();
+         layout.grid = Math.round(clamp((e.clientY - box.top) / box.height * 100, 15, 75));
+         setGridShare(layout.grid);
+         cancelAnimationFrame(resizing);
+         resizing = requestAnimationFrame(function () { if (window.quickAlgoInterface) { quickAlgoInterface.onResize(); } });
+      }, function () {
+         saveLayout();
+         // the grid is drawn again at its new size
+         window.dispatchEvent(new Event('resize'));
+      });
+   }
+   // left / right: the list's blocks get smaller or bigger (60 % to 130 % of the program's)
+   function dragX(el) {
+      var start = 0, startScale = 1;
+      el.addEventListener('pointerdown', function () { start = parseFloat(el.style.left) || 1; startScale = listScale(); });
+      onDrag(el, function (e) {
+         var box = el.parentNode.getBoundingClientRect();
+         el.style.left = clamp(e.clientX - box.left, 40, box.width * 0.7) + 'px';
+      }, function () {
+         layout.list = Math.round(clamp(startScale * (parseFloat(el.style.left) || start) / start, 0.6, 1.3) * 100) / 100;
+         saveLayout();
+         refreshList();
+      });
+   }
+
+   // the speed slider: the engine draws two (beside the grid, and in the bar of a phone) and reads the
+   // first one, hidden on a phone, so the speed never changed there: every slider follows the one moved
+   document.addEventListener('input', syncSpeed, true);
+   document.addEventListener('change', syncSpeed, true);
+   function syncSpeed(e) {
+      var moved = e.target;
+      if (!moved.classList || !moved.classList.contains('speedCursor')) { return; }
+      Array.prototype.forEach.call(document.querySelectorAll('.speedCursor'), function (s) {
+         if (s !== moved) { s.value = moved.value; }
+      });
+   }
 
    translate();
 

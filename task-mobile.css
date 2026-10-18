@@ -1,7 +1,9 @@
 /* Task pages on a phone (the engine's "mobile first" layout). Loaded by bridge.js.
-   The bar at the bottom switches between the three views of a task: the problem (statement and
-   grid), the program (blocks) and the run. The engine shows the name of the open view only:
-   here every view keeps its name, and the three buttons share the width. */
+   The bar at the bottom switches between the views of a task. The engine has three: the problem
+   (statement and grid), the program (blocks) and the run. The run view already holds the grid and an
+   editable program (bridge.js), so the editor view is dropped: two views, "Énoncé" and "Programme".
+   The engine shows the name of the open view only: here every view keeps its name. */
+#modeSelector #mode-editor { display: none !important; }
 #modeSelector .mode { flex: 1 1 0 !important; justify-content: center !important; min-width: 0; }
 #modeSelector .mode#mode-editor.active { flex: 1.6 1 0 !important; justify-content: space-between !important; }
 #modeSelector #mode-player.active { flex: 1.6 1 0 !important; }
@@ -9,19 +11,44 @@
 #modeSelector .mode:not(.active) .label { display: inline !important; }
 #modeSelector .mode .label { margin-left: 8px !important; white-space: nowrap; }
 #modeSelector #mode-player:not(.active)::after {
-   content: "Lancer"; text-transform: uppercase; font-weight: bold; margin-left: 8px; white-space: nowrap;
+   content: "Programme"; text-transform: uppercase; font-weight: bold; margin-left: 8px; white-space: nowrap;
 }
 /* while running, the run button holds the player's controls: the two other views show their icon only */
 #task.mode-player #modeSelector .mode:not(.active) .label { display: none !important; }
 #task.mode-player #modeSelector #mode-player.active { flex: 4 1 0 !important; }
 /* the name of the run view in the language chosen in the trainer (lang.js sets <html lang>) */
-html:lang(en) #modeSelector #mode-player:not(.active)::after { content: "Run"; }
-html:lang(vi) #modeSelector #mode-player:not(.active)::after { content: "Chạy"; }
+html:lang(en) #modeSelector #mode-player:not(.active)::after { content: "Program"; }
+html:lang(vi) #modeSelector #mode-player:not(.active)::after { content: "Chương trình"; }
 
 /* the run view: the grid above, the program and its blocks below (bridge.js keeps the program
    editable there), so a child can build and run without changing view */
 @media screen and (max-width: 767.9px) and (orientation: portrait) {
    #miniPlatformHeader { display: none !important; }
    #task { height: 100% !important; }   /* the engine leaves 40 px for that header */
-   #task.mode-player #introGrid { flex: 0 0 36% !important; min-height: 0; }
+   /* the grid's share of the height: the handle under it changes it (bridge.js, --algorea-grid) */
+   #task.mode-player #introGrid { flex: 0 0 var(--algorea-grid, 36%) !important; min-height: 0; }
+   #task.mode-player #algoreaSplit { display: flex; }
 }
+
+/* "N blocks left out of M": the editor's line, now in the run view (the engine hides it there) */
+@media screen and (max-width: 767.9px) and (orientation: portrait) {
+   html body #task.mode-player #editorBar { display: flex !important; height: 26px; }
+   #task.mode-player #editorBar #capacity { line-height: 26px; font-size: 14px; font-weight: 700; color: #3a3f4b; }
+}
+@media screen and (min-width: 480px) and (max-width: 854.9px) and (orientation: landscape),
+       screen and (min-width: 480px) and (max-height: 449.9px) and (orientation: landscape) {
+   html body #task.mode-player #editorBar { display: flex !important; }
+   #task.mode-player #editorBar #capacity { font-weight: 700; color: #3a3f4b; }
+}
+
+/* the two handles (bridge.js): under the grid (up / down) and on the right of the list of blocks
+   (left / right: the blocks of the list get smaller or bigger) */
+#algoreaSplit { display: none; flex: 0 0 18px; align-items: center; justify-content: center; cursor: row-resize;
+   touch-action: none; background: #e6eef7; border-top: 1px solid #c9d8ea; border-bottom: 1px solid #c9d8ea; }
+#algoreaSplit span { width: 54px; height: 6px; border-radius: 3px; background: #8ec3ec; }
+#algoreaListGrip { position: absolute; top: 0; bottom: 0; width: 22px; margin-left: -11px; z-index: 5; cursor: col-resize;
+   touch-action: none; display: flex; align-items: center; justify-content: center; }
+#algoreaListGrip[hidden] { display: none; }
+#algoreaListGrip span { width: 8px; height: 54px; border-radius: 4px; background: #8ec3ec; box-shadow: 0 0 0 2px #fff; }
+.algoreaGrip.dragging span { background: #f7a440; }
+#algoreaListGrip.dragging { background: rgba(247, 164, 64, .18); }
